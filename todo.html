@@ -80,6 +80,8 @@
     .checkbox.checked { background: var(--accent); border-color: var(--accent); }
     .checkbox.checked::after { content: ''; width: 5px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
     .todo-content { flex: 1; min-width: 0; }
+    .todo-date { font-size: 10px; color: var(--accent); cursor: pointer; margin-bottom: 2px; }
+    .todo-date:hover { text-decoration: underline; }
     .todo-text { font-size: 13px; line-height: 1.4; word-break: break-word; }
     .todo-item.completed .todo-text { color: var(--text-muted); text-decoration: line-through; }
     .todo-time { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
@@ -242,6 +244,30 @@ function editTodo(id, text) {
   if (t && text.trim()) { t.text = text.trim(); saveTodos(); render(); }
 }
 
+function changeDate(id, currentDate) {
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.value = currentDate;
+  input.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;padding:10px;border:1px solid var(--accent);border-radius:8px;background:var(--bg-card);color:var(--text-primary);';
+  
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999;';
+  overlay.onclick = () => { document.body.removeChild(overlay); document.body.removeChild(input); };
+  
+  input.onchange = () => {
+    if (input.value !== currentDate) {
+      const t = todos.find(x => x.id === id);
+      if (t) { t.date = input.value; saveTodos(); renderCalendar(); render(); }
+    }
+    document.body.removeChild(overlay);
+    document.body.removeChild(input);
+  };
+  
+  document.body.appendChild(overlay);
+  document.body.appendChild(input);
+  input.showPicker ? input.showPicker() : input.focus();
+}
+
 function deleteTodo(id) {
   todos = todos.filter(x => x.id !== id);
   saveTodos();
@@ -286,11 +312,10 @@ function startEdit(id, text) {
   textEl.style.display = 'none';
   const input = document.createElement('input');
   input.type = 'text';
-  input.className = 'todo-edit-input';
   input.value = text;
   input.style.cssText = 'width:100%;padding:6px 10px;border:1px solid var(--accent);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg-primary);color:var(--text-primary);outline:none;';
   input.onblur = () => editTodo(id, input.value);
-  input.onkeydown = e => { if (e.key === 'Enter') { editTodo(id, input.value); } if (e.key === 'Escape') { render(); } };
+  input.onkeydown = e => { if (e.key === 'Enter') editTodo(id, input.value); if (e.key === 'Escape') render(); };
   content.insertBefore(input, textEl);
   input.focus();
   input.select();
@@ -337,7 +362,7 @@ function render() {
       html += '<div class="date-section"><div class="date-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' + formatDisplayDate(dateKey) + ' ' + tag + ' <span class="count">(' + dayTodos.length + ')' + subLabel + '</span></div><div class="todo-list">' + dayTodos.map(t => {
         const cls = 'todo-item' + (t.completed ? ' completed' : '') + (t.isContinued ? ' continued' : '');
         const timeHtml = t.isContinued ? '<div class="todo-time">' + formatTime(t.createdAt) + '</div><div class="todo-source">来自昨天</div>' : '<div class="todo-time">' + formatTime(t.createdAt) + '</div>';
-        return '<div class="' + cls + '" data-id="' + t.id + '"><div class="checkbox' + (t.completed ? ' checked' : '') + '" onclick="toggleTodo(\'' + t.id + '\')"></div><div class="todo-content"><div class="todo-text" ondblclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')">' + escapeHtml(t.text) + '</div>' + timeHtml + '</div><div class="todo-actions"><button class="btn-edit" onclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-delete" onclick="deleteTodo(\'' + t.id + '\')" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>';
+        return '<div class="' + cls + '" data-id="' + t.id + '"><div class="checkbox' + (t.completed ? ' checked' : '') + '" onclick="toggleTodo(\'' + t.id + '\')"></div><div class="todo-content"><div class="todo-date" onclick="changeDate(\'' + t.id + '\',\'' + t.date + '\')">' + formatDisplayDate(t.date) + '</div><div class="todo-text" ondblclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')">' + escapeHtml(t.text) + '</div>' + timeHtml + '</div><div class="todo-actions"><button class="btn-edit" onclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-delete" onclick="deleteTodo(\'' + t.id + '\')" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>';
       }).join('') + '</div></div>';
     });
     todoList.innerHTML = html;
