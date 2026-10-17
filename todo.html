@@ -808,7 +808,158 @@
     </main>
   </div>
 
-  <script>
+  <script>\nfunction formatDateKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + d;
+    }\nfunction getYesterdayKey() {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return formatDateKey(yesterday);
+    }\nfunction formatDisplayDate(dateStr) {
+      const date = new Date(dateStr);
+      const today = new Date();
+      const todayKey = formatDateKey(today);
+      const yesterdayKey = getYesterdayKey();
+      
+      if (dateStr === todayKey) return '今天';
+      if (dateStr === yesterdayKey) return '昨天';
+      
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      const weekday = weekdays[date.getDay()];
+      return month + '月' + day + '日 ' + weekday;
+    }\nfunction getDateTag(dateStr) {
+      const todayKey = formatDateKey(new Date());
+      const yesterdayKey = getYesterdayKey();
+      
+      if (dateStr === todayKey) return '<span class="tag">今天</span>';
+      if (dateStr === yesterdayKey) return '<span class="tag yesterday">昨天</span>';
+      return '';
+    }\nfunction migrateData(oldTodos) {
+      return oldTodos.map(t => {
+        if (t.date === undefined) {
+          return {
+            ...t,
+            date: formatDateKey(new Date(t.createdAt))
+          }\nfunction loadTodos() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const version = parseInt(localStorage.getItem('todos_version') || '0');
+      
+      if (stored) {
+        try {
+          todos = JSON.parse(stored);
+          if (version < CURRENT_VERSION) {
+            todos = migrateData(todos);
+            saveTodos();
+            localStorage.setItem('todos_version', CURRENT_VERSION.toString());
+          }\nfunction saveTodos() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      localStorage.setItem('todos_version', CURRENT_VERSION.toString());
+    }\nfunction loadTheme() {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved) {
+        document.body.dataset.theme = saved;
+        document.querySelectorAll('.theme-dot').forEach(dot => {
+          dot.classList.toggle('active', dot.dataset.theme === saved);
+        }\nfunction saveTheme(theme) {
+      localStorage.setItem(THEME_KEY, theme);
+    }\nfunction generateId() {
+      return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }\nfunction formatTime(timestamp) {
+      const date = new Date(timestamp);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return hours + ':' + minutes;
+    }\nfunction addTodo(text, date) {
+      const todo = {
+        id: generateId(),
+        text: text.trim(),
+        completed: false,
+        createdAt: Date.now(),
+        date: date
+      }\nfunction toggleTodo(id) {
+      const todo = todos.find(t => t.id === id);
+      if (todo) {
+        todo.completed = !todo.completed;
+        saveTodos();
+        renderCalendar();
+        render();
+      }\nfunction editTodo(id, newText) {
+      const todo = todos.find(t => t.id === id);
+      if (todo && newText.trim()) {
+        todo.text = newText.trim();
+        saveTodos();
+        render();
+      }\nfunction startEdit(todoId, currentText) {
+      const todoItem = document.querySelector('.todo-item[data-id="' + todoId + '"]');
+      const contentDiv = todoItem.querySelector('.todo-content');
+      const textDiv = todoItem.querySelector('.todo-text');
+      
+      textDiv.style.display = 'none';
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'todo-edit-input';
+      input.value = currentText;
+      input.maxLength = 200;
+      
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          editTodo(todoId, input.value);
+        }\nfunction clearCompleted() {
+      todos = todos.filter(t => !t.completed);
+      saveTodos();
+      renderCalendar();
+      render();
+    }\nfunction updateStats() {
+      const total = todos.length;
+      const completed = todos.filter(t => t.completed).length;
+      const remaining = total - completed;
+      
+      totalCount.textContent = total;
+      completedCount.textContent = completed;
+      remainingCount.textContent = remaining;
+    }\nfunction getFilteredAndGroupedTodos() {
+      let filtered = todos;
+      
+      if (currentFilter === 'active') {
+        filtered = filtered.filter(t => !t.completed);
+      }\nfunction escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }\nfunction renderCalendar() {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      
+      calTitle.textContent = year + '年 ' + (month + 1) + '月';
+      
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const startDow = firstDay.getDay();
+      const daysInMonth = lastDay.getDate();
+      
+      const today = new Date();
+      const todayKey = formatDateKey(today);
+      
+      let html = '';
+      
+      const prevMonth = new Date(year, month, 0);
+      const prevDays = prevMonth.getDate();
+      for (let i = startDow - 1; i >= 0; i--) {
+        const d = prevDays - i;
+        html += '<div class="cal-day other-month">' + d + '</div>';
+      }\nfunction render() {
+      const grouped = getFilteredAndGroupedTodos();
+      const dateKeys = Object.keys(grouped).sort().reverse();
+      const todayKey = formatDateKey(new Date());
+      
+      if (dateKeys.length === 0) {
+        todoList.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><p>' + (currentFilter === 'all' ? '暂无任务，添加一个吧' : currentFilter === 'active' ? '没有进行中的任务' : '暂无已完成的任务') + '</p></div>';
+      }\n
     const STORAGE_KEY = 'todos_v3';
     const THEME_KEY = 'todo_theme';
     const CURRENT_VERSION = 1;
@@ -834,68 +985,21 @@
     const todayBtn = document.getElementById('today-btn');
     const themeSwitcher = document.getElementById('theme-switcher');
 
-    function formatDateKey(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      return y + '-' + m + '-' + d;
-    }
+    
 
-    function getYesterdayKey() {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      return formatDateKey(yesterday);
-    }
+    
 
-    function formatDisplayDate(dateStr) {
-      const date = new Date(dateStr);
-      const today = new Date();
-      const todayKey = formatDateKey(today);
-      const yesterdayKey = getYesterdayKey();
-      
-      if (dateStr === todayKey) return '今天';
-      if (dateStr === yesterdayKey) return '昨天';
-      
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-      const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-      const weekday = weekdays[date.getDay()];
-      return month + '月' + day + '日 ' + weekday;
-    }
+    
 
-    function getDateTag(dateStr) {
-      const todayKey = formatDateKey(new Date());
-      const yesterdayKey = getYesterdayKey();
-      
-      if (dateStr === todayKey) return '<span class="tag">今天</span>';
-      if (dateStr === yesterdayKey) return '<span class="tag yesterday">昨天</span>';
-      return '';
-    }
+    
 
-    function migrateData(oldTodos) {
-      return oldTodos.map(t => {
-        if (t.date === undefined) {
-          return {
-            ...t,
-            date: formatDateKey(new Date(t.createdAt))
-          };
+    ;
         }
         return t;
       });
     }
 
-    function loadTodos() {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const version = parseInt(localStorage.getItem('todos_version') || '0');
-      
-      if (stored) {
-        try {
-          todos = JSON.parse(stored);
-          if (version < CURRENT_VERSION) {
-            todos = migrateData(todos);
-            saveTodos();
-            localStorage.setItem('todos_version', CURRENT_VERSION.toString());
-          }
+    
         } catch (e) {
           todos = [];
         }
@@ -904,88 +1008,34 @@
       }
     }
 
-    function saveTodos() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-      localStorage.setItem('todos_version', CURRENT_VERSION.toString());
-    }
+    
 
-    function loadTheme() {
-      const saved = localStorage.getItem(THEME_KEY);
-      if (saved) {
-        document.body.dataset.theme = saved;
-        document.querySelectorAll('.theme-dot').forEach(dot => {
-          dot.classList.toggle('active', dot.dataset.theme === saved);
-        });
+    );
       }
     }
 
-    function saveTheme(theme) {
-      localStorage.setItem(THEME_KEY, theme);
-    }
+    
 
-    function generateId() {
-      return Date.now().toString(36) + Math.random().toString(36).substr(2);
-    }
+    
 
-    function formatTime(timestamp) {
-      const date = new Date(timestamp);
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      return hours + ':' + minutes;
-    }
+    
 
-    function addTodo(text, date) {
-      const todo = {
-        id: generateId(),
-        text: text.trim(),
-        completed: false,
-        createdAt: Date.now(),
-        date: date
-      };
+    ;
       todos.unshift(todo);
       saveTodos();
       renderCalendar();
       render();
     }
 
-    function toggleTodo(id) {
-      const todo = todos.find(t => t.id === id);
-      if (todo) {
-        todo.completed = !todo.completed;
-        saveTodos();
-        renderCalendar();
-        render();
-      }
+    
     }
 
     
 
-    function editTodo(id, newText) {
-      const todo = todos.find(t => t.id === id);
-      if (todo && newText.trim()) {
-        todo.text = newText.trim();
-        saveTodos();
-        render();
-      }
+    
     }
 
-    function startEdit(todoId, currentText) {
-      const todoItem = document.querySelector('.todo-item[data-id="' + todoId + '"]');
-      const contentDiv = todoItem.querySelector('.todo-content');
-      const textDiv = todoItem.querySelector('.todo-text');
-      
-      textDiv.style.display = 'none';
-      
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'todo-edit-input';
-      input.value = currentText;
-      input.maxLength = 200;
-      
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          editTodo(todoId, input.value);
-        }
+    
         if (e.key === 'Escape') {
           render();
         }
@@ -1000,29 +1050,11 @@
       input.select();
     }
 
-    function clearCompleted() {
-      todos = todos.filter(t => !t.completed);
-      saveTodos();
-      renderCalendar();
-      render();
-    }
+    
 
-    function updateStats() {
-      const total = todos.length;
-      const completed = todos.filter(t => t.completed).length;
-      const remaining = total - completed;
-      
-      totalCount.textContent = total;
-      completedCount.textContent = completed;
-      remainingCount.textContent = remaining;
-    }
+    
 
-    function getFilteredAndGroupedTodos() {
-      let filtered = todos;
-      
-      if (currentFilter === 'active') {
-        filtered = filtered.filter(t => !t.completed);
-      } else if (currentFilter === 'completed') {
+     else if (currentFilter === 'completed') {
         filtered = filtered.filter(t => t.completed);
       }
       
@@ -1053,34 +1085,9 @@
       return grouped;
     }
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
+    
 
-    function renderCalendar() {
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
-      
-      calTitle.textContent = year + '年 ' + (month + 1) + '月';
-      
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month + 1, 0);
-      const startDow = firstDay.getDay();
-      const daysInMonth = lastDay.getDate();
-      
-      const today = new Date();
-      const todayKey = formatDateKey(today);
-      
-      let html = '';
-      
-      const prevMonth = new Date(year, month, 0);
-      const prevDays = prevMonth.getDate();
-      for (let i = startDow - 1; i >= 0; i--) {
-        const d = prevDays - i;
-        html += '<div class="cal-day other-month">' + d + '</div>';
-      }
+    
       
       for (let d = 1; d <= daysInMonth; d++) {
         const dateKey = formatDateKey(new Date(year, month, d));
@@ -1114,14 +1121,7 @@
       });
     }
 
-    function render() {
-      const grouped = getFilteredAndGroupedTodos();
-      const dateKeys = Object.keys(grouped).sort().reverse();
-      const todayKey = formatDateKey(new Date());
-      
-      if (dateKeys.length === 0) {
-        todoList.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><p>' + (currentFilter === 'all' ? '暂无任务，添加一个吧' : currentFilter === 'active' ? '没有进行中的任务' : '暂无已完成的任务') + '</p></div>';
-      } else {
+     else {
         let html = '';
         dateKeys.forEach(dateKey => {
           const dayTodos = grouped[dateKey];
@@ -1215,9 +1215,10 @@
     todoDate.value = selectedDate;
     loadTodos();
     loadTheme();
+    alert("Initialized! calendarGrid: " + calendarGrid + ", html generated");
     renderCalendar();
     render();
-  </script>
+  \n  </script>
 </body>
 </html>
 
