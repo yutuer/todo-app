@@ -809,7 +809,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'todos';
+    const STORAGE_KEY = 'todos_v3';
     const THEME_KEY = 'todo_theme';
     const CURRENT_VERSION = 1;
     let todos = [];
@@ -900,19 +900,7 @@
           todos = [];
         }
       } else {
-        const legacyKeys = ['todos_v2', 'todos_v3', 'todos_v4'];
-        for (const key of legacyKeys) {
-          const legacy = localStorage.getItem(key);
-          if (legacy) {
-            try {
-              todos = JSON.parse(legacy);
-              todos = migrateData(todos);
-              saveTodos();
-              localStorage.setItem('todos_version', CURRENT_VERSION.toString());
-              break;
-            } catch (e) {}
-          }
-        }
+
       }
     }
 
