@@ -583,7 +583,59 @@
       margin-top: 2px;
     }
 
-    .btn-delete {
+        .todo-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .todo-item:hover .todo-actions {
+      opacity: 1;
+    }
+    .btn-edit, .btn-delete {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-edit:hover {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+    .btn-delete:hover {
+      background: rgba(248, 113, 113, 0.1);
+      color: var(--danger);
+    }
+    .btn-edit svg, .btn-delete svg {
+      width: 14px;
+      height: 14px;
+    }
+    .todo-text { cursor: text; }
+    .todo-item:hover .todo-text { color: var(--accent); }
+    .todo-edit-input {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      outline: none;
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+    @media (max-width: 768px) {
+      .todo-actions { opacity: 1; }
+    }
+    
       width: 28px;
       height: 28px;
       border: none;
@@ -918,11 +970,46 @@
       }
     }
 
-    function deleteTodo(id) {
-      todos = todos.filter(t => t.id !== id);
-      saveTodos();
-      renderCalendar();
-      render();
+    
+
+    function editTodo(id, newText) {
+      const todo = todos.find(t => t.id === id);
+      if (todo && newText.trim()) {
+        todo.text = newText.trim();
+        saveTodos();
+        render();
+      }
+    }
+
+    function startEdit(todoId, currentText) {
+      const todoItem = document.querySelector('.todo-item[data-id="' + todoId + '"]');
+      const contentDiv = todoItem.querySelector('.todo-content');
+      const textDiv = todoItem.querySelector('.todo-text');
+      
+      textDiv.style.display = 'none';
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'todo-edit-input';
+      input.value = currentText;
+      input.maxLength = 200;
+      
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          editTodo(todoId, input.value);
+        }
+        if (e.key === 'Escape') {
+          render();
+        }
+      });
+      
+      input.addEventListener('blur', () => {
+        editTodo(todoId, input.value);
+      });
+      
+      contentDiv.insertBefore(input, textDiv);
+      input.focus();
+      input.select();
     }
 
     function clearCompleted() {
@@ -1144,3 +1231,5 @@
   </script>
 </body>
 </html>
+
+
