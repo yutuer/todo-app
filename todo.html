@@ -93,28 +93,40 @@
       background: var(--bg-primary);
       color: var(--text-primary);
       min-height: 100vh;
-      padding: 32px 16px;
+      padding: 24px;
       background-image: 
         radial-gradient(ellipse at 20% 0%, var(--glow-1) 0%, transparent 50%),
         radial-gradient(ellipse at 80% 100%, var(--glow-2) 0%, transparent 50%);
       transition: background-image 0.3s;
     }
 
-    .container {
-      max-width: 640px;
+    .layout {
+      display: flex;
+      gap: 20px;
+      max-width: 1100px;
       margin: 0 auto;
+    }
+
+    .sidebar {
+      width: 200px;
+      flex-shrink: 0;
+    }
+
+    .main {
+      flex: 1;
+      min-width: 0;
     }
 
     header {
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 20px;
     }
 
     h1 {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 700;
       letter-spacing: -0.5px;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -123,15 +135,15 @@
 
     .subtitle {
       color: var(--text-secondary);
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .theme-switcher {
       display: flex;
       justify-content: center;
-      gap: 10px;
-      margin-top: 16px;
-      padding: 12px;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px;
       background: var(--bg-card);
       border-radius: 50px;
       width: fit-content;
@@ -141,13 +153,12 @@
     }
 
     .theme-dot {
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       cursor: pointer;
       transition: all 0.2s;
       border: 2px solid transparent;
-      position: relative;
     }
 
     .theme-dot:hover {
@@ -167,142 +178,36 @@
     .theme-dot[data-theme="emerald"] { background: linear-gradient(135deg, #10b981, #059669); }
     .theme-dot[data-theme="slate"] { background: linear-gradient(135deg, #64748b, #475569); }
 
-    .stats {
-      display: flex;
-      justify-content: center;
-      gap: 36px;
-      margin-top: 24px;
-    }
-
-    .stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .stat-value {
-      font-size: 26px;
-      font-weight: 700;
-      color: var(--accent);
-      text-shadow: 0 0 20px var(--accent-glow);
-      transition: color 0.3s, text-shadow 0.3s;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .input-card {
-      background: var(--bg-card);
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: var(--shadow);
-      margin-bottom: 16px;
-      border: 1px solid var(--border);
-    }
-
-    .input-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    input[type="date"] {
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      font-size: 14px;
-      font-family: inherit;
-      outline: none;
-      cursor: pointer;
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-    }
-
-    input[type="date"]:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-light);
-    }
-
-    input[type="text"] {
-      flex: 1;
-      padding: 12px 16px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      font-size: 14px;
-      font-family: inherit;
-      transition: all 0.2s;
-      outline: none;
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-light);
-    }
-
-    input[type="text"]::placeholder {
-      color: var(--text-muted);
-    }
-
-    .btn-add {
-      padding: 12px 22px;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-      white-space: nowrap;
-      box-shadow: 0 4px 14px var(--accent-glow);
-    }
-
-    .btn-add:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px var(--accent-glow);
-    }
-
-    .btn-add:active {
-      transform: translateY(0);
-    }
-
     .calendar-card {
       background: var(--bg-card);
-      border-radius: 16px;
-      padding: 18px;
+      border-radius: 14px;
+      padding: 14px;
       box-shadow: var(--shadow);
-      margin-bottom: 16px;
       border: 1px solid var(--border);
+      position: sticky;
+      top: 24px;
     }
 
     .calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 10px;
     }
 
     .cal-title {
-      font-size: 15px;
+      font-size: 13px;
       font-weight: 600;
-      color: var(--text-primary);
     }
 
     .cal-nav {
-      width: 34px;
-      height: 34px;
+      width: 26px;
+      height: 26px;
       border: 1px solid var(--border);
       background: var(--bg-secondary);
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -320,19 +225,19 @@
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       text-align: center;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .calendar-weekdays span {
-      font-size: 11px;
+      font-size: 9px;
       color: var(--text-muted);
-      padding: 6px;
+      padding: 3px;
     }
 
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
+      gap: 2px;
     }
 
     .cal-day {
@@ -340,8 +245,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
-      border-radius: 10px;
+      font-size: 11px;
+      border-radius: 6px;
       cursor: pointer;
       transition: all 0.15s;
       position: relative;
@@ -362,22 +267,20 @@
       background: var(--accent-light);
       color: var(--accent);
       font-weight: 600;
-      border: 1px solid var(--accent-glow);
     }
 
     .cal-day.selected {
       background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
       color: white;
       font-weight: 600;
-      box-shadow: 0 4px 14px var(--accent-glow);
     }
 
     .cal-day.has-todos::after {
       content: '';
       position: absolute;
-      bottom: 5px;
-      width: 4px;
-      height: 4px;
+      bottom: 3px;
+      width: 3px;
+      height: 3px;
       background: var(--accent);
       border-radius: 50%;
     }
@@ -386,18 +289,140 @@
       background: white;
     }
 
-    .filters {
+    .today-btn {
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px;
+      background: var(--accent-light);
+      border: 1px solid var(--accent-glow);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .today-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 16px;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      text-shadow: 0 0 20px var(--accent-glow);
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .input-card {
+      background: var(--bg-card);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+    }
+
+    .input-row {
       display: flex;
       gap: 8px;
-      margin-bottom: 16px;
+    }
+
+    input[type="date"] {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    input[type="date"]:focus {
+      border-color: var(--accent);
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      transition: all 0.2s;
+      outline: none;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--text-muted);
+    }
+
+    .btn-add {
+      padding: 10px 16px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      white-space: nowrap;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .btn-add:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+
+    .filters {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
     }
 
     .filter-btn {
-      padding: 9px 16px;
+      padding: 7px 12px;
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      font-size: 13px;
+      border-radius: 8px;
+      font-size: 12px;
       font-weight: 500;
       color: var(--text-secondary);
       cursor: pointer;
@@ -418,28 +443,28 @@
     }
 
     .date-section {
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .date-label {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-secondary);
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding-left: 4px;
+      gap: 6px;
+      padding-left: 2px;
     }
 
     .date-label svg {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       color: var(--accent);
     }
 
     .date-label .count {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
       font-weight: 400;
     }
@@ -447,17 +472,17 @@
     .todo-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
     .todo-item {
       background: var(--bg-card);
-      border-radius: 12px;
-      padding: 14px 16px;
+      border-radius: 10px;
+      padding: 12px 14px;
       box-shadow: var(--shadow);
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       animation: slideIn 0.25s ease;
       border: 1px solid var(--border);
       transition: border-color 0.2s;
@@ -468,15 +493,15 @@
     }
 
     @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-8px); }
+      from { opacity: 0; transform: translateY(-6px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
     .checkbox {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       border: 2px solid var(--border);
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -498,8 +523,8 @@
 
     .checkbox.checked::after {
       content: '';
-      width: 6px;
-      height: 10px;
+      width: 5px;
+      height: 9px;
       border: solid white;
       border-width: 0 2px 2px 0;
       transform: rotate(45deg) translateY(-1px);
@@ -511,8 +536,8 @@
     }
 
     .todo-text {
-      font-size: 14px;
-      line-height: 1.5;
+      font-size: 13px;
+      line-height: 1.4;
       word-break: break-word;
     }
 
@@ -522,17 +547,17 @@
     }
 
     .todo-time {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
-      margin-top: 4px;
+      margin-top: 3px;
     }
 
     .btn-delete {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border: none;
       background: transparent;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -548,39 +573,39 @@
     }
 
     .btn-delete svg {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
     }
 
     .empty-state {
       text-align: center;
-      padding: 60px 20px;
+      padding: 40px 20px;
       color: var(--text-muted);
     }
 
     .empty-state svg {
-      width: 52px;
-      height: 52px;
-      margin-bottom: 14px;
+      width: 44px;
+      height: 44px;
+      margin-bottom: 12px;
       opacity: 0.4;
       color: var(--accent);
     }
 
     .empty-state p {
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .clear-completed {
-      margin-top: 20px;
+      margin-top: 16px;
       text-align: center;
     }
 
     .btn-clear {
-      padding: 10px 20px;
+      padding: 8px 16px;
       background: transparent;
       border: 1px solid var(--border);
-      border-radius: 10px;
-      font-size: 13px;
+      border-radius: 8px;
+      font-size: 12px;
       color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.2s;
@@ -590,37 +615,23 @@
     .btn-clear:hover {
       border-color: var(--danger);
       color: var(--danger);
-      background: rgba(248, 113, 113, 0.05);
     }
 
-    .today-btn {
-      padding: 9px 14px;
-      background: var(--accent-light);
-      border: 1px solid var(--accent-glow);
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--accent);
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-      margin-left: auto;
-    }
-
-    .today-btn:hover {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: white;
-      box-shadow: 0 4px 14px var(--accent-glow);
-    }
-
-    @media (max-width: 480px) {
+    @media (max-width: 768px) {
       body {
-        padding: 20px 12px;
+        padding: 16px;
       }
 
-      h1 {
-        font-size: 24px;
+      .layout {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+      }
+
+      .calendar-card {
+        position: static;
       }
 
       .input-row {
@@ -635,92 +646,83 @@
         width: 100%;
       }
 
-      .stats {
-        gap: 28px;
-      }
-
-      .filters {
-        flex-wrap: wrap;
-      }
-
-      .today-btn {
-        margin-left: 0;
-        width: 100%;
-      }
-
       .theme-switcher {
-        gap: 8px;
-        padding: 10px;
+        gap: 6px;
+        padding: 8px;
       }
 
       .theme-dot {
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>待办事项</h1>
-      <p class="subtitle">记录每天要完成的任务</p>
-      <div class="theme-switcher" id="theme-switcher">
-        <div class="theme-dot active" data-theme="violet" title="紫罗兰"></div>
-        <div class="theme-dot" data-theme="cyan" title="青色"></div>
-        <div class="theme-dot" data-theme="coral" title="珊瑚"></div>
-        <div class="theme-dot" data-theme="rose" title="玫瑰"></div>
-        <div class="theme-dot" data-theme="emerald" title="翡翠"></div>
-        <div class="theme-dot" data-theme="slate" title="石墨"></div>
-      </div>
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-value" id="total-count">0</div>
-          <div class="stat-label">总计</div>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="calendar-card">
+        <div class="calendar-header">
+          <button class="cal-nav" id="prev-month">&lt;</button>
+          <span class="cal-title" id="cal-title"></span>
+          <button class="cal-nav" id="next-month">&gt;</button>
         </div>
-        <div class="stat">
-          <div class="stat-value" id="completed-count">0</div>
-          <div class="stat-label">已完成</div>
+        <div class="calendar-weekdays">
+          <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
         </div>
-        <div class="stat">
-          <div class="stat-value" id="remaining-count">0</div>
-          <div class="stat-label">剩余</div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+        <button class="today-btn" id="today-btn">今天</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header>
+        <h1>待办事项</h1>
+        <p class="subtitle">记录每天要完成的任务</p>
+        <div class="theme-switcher" id="theme-switcher">
+          <div class="theme-dot active" data-theme="violet" title="紫罗兰"></div>
+          <div class="theme-dot" data-theme="cyan" title="青色"></div>
+          <div class="theme-dot" data-theme="coral" title="珊瑚"></div>
+          <div class="theme-dot" data-theme="rose" title="玫瑰"></div>
+          <div class="theme-dot" data-theme="emerald" title="翡翠"></div>
+          <div class="theme-dot" data-theme="slate" title="石墨"></div>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-value" id="total-count">0</div>
+            <div class="stat-label">总计</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="completed-count">0</div>
+            <div class="stat-label">已完成</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="remaining-count">0</div>
+            <div class="stat-label">剩余</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="input-card">
+        <div class="input-row">
+          <input type="date" id="todo-date">
+          <input type="text" id="todo-input" placeholder="添加新任务..." maxlength="200" autocomplete="off">
+          <button class="btn-add" id="add-btn">添加</button>
         </div>
       </div>
-    </header>
 
-    <div class="input-card">
-      <div class="input-row">
-        <input type="date" id="todo-date">
-        <input type="text" id="todo-input" placeholder="添加新任务..." maxlength="200" autocomplete="off">
-        <button class="btn-add" id="add-btn">添加</button>
+      <div class="filters">
+        <button class="filter-btn active" data-filter="all">全部</button>
+        <button class="filter-btn" data-filter="active">进行中</button>
+        <button class="filter-btn" data-filter="completed">已完成</button>
       </div>
-    </div>
 
-    <div class="calendar-card">
-      <div class="calendar-header">
-        <button class="cal-nav" id="prev-month">&lt;</button>
-        <span class="cal-title" id="cal-title"></span>
-        <button class="cal-nav" id="next-month">&gt;</button>
+      <div class="todo-list" id="todo-list"></div>
+
+      <div class="clear-completed" id="clear-container" style="display: none;">
+        <button class="btn-clear" id="clear-btn">清除已完成</button>
       </div>
-      <div class="calendar-weekdays">
-        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
-      </div>
-      <div class="calendar-grid" id="calendar-grid"></div>
-    </div>
-
-    <div class="filters">
-      <button class="filter-btn active" data-filter="all">全部</button>
-      <button class="filter-btn" data-filter="active">进行中</button>
-      <button class="filter-btn" data-filter="completed">已完成</button>
-      <button class="today-btn" id="today-btn">今天</button>
-    </div>
-
-    <div class="todo-list" id="todo-list"></div>
-
-    <div class="clear-completed" id="clear-container" style="display: none;">
-      <button class="btn-clear" id="clear-btn">清除已完成</button>
-    </div>
+    </main>
   </div>
 
   <script>
