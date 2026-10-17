@@ -455,6 +455,7 @@
       align-items: center;
       gap: 6px;
       padding-left: 2px;
+      flex-wrap: wrap;
     }
 
     .date-label svg {
@@ -485,9 +486,8 @@
 
     .date-label .sub-label {
       font-size: 10px;
-      color: var(--text-muted);
-      font-weight: 400;
-      margin-left: 4px;
+      color: #fb923c;
+      font-weight: 500;
     }
 
     .todo-list {
@@ -757,8 +757,9 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'todos_v3';
+    const STORAGE_KEY = 'todos';
     const THEME_KEY = 'todo_theme';
+    const CURRENT_VERSION = 1;
     let todos = [];
     let currentFilter = 'all';
     let currentMonth = new Date();
@@ -819,19 +820,53 @@
       return '';
     }
 
+    function migrateData(oldTodos) {
+      return oldTodos.map(t => {
+        if (t.date === undefined) {
+          return {
+            ...t,
+            date: formatDateKey(new Date(t.createdAt))
+          };
+        }
+        return t;
+      });
+    }
+
     function loadTodos() {
       const stored = localStorage.getItem(STORAGE_KEY);
+      const version = parseInt(localStorage.getItem('todos_version') || '0');
+      
       if (stored) {
         try {
           todos = JSON.parse(stored);
+          if (version < CURRENT_VERSION) {
+            todos = migrateData(todos);
+            saveTodos();
+            localStorage.setItem('todos_version', CURRENT_VERSION.toString());
+          }
         } catch (e) {
           todos = [];
+        }
+      } else {
+        const legacyKeys = ['todos_v2', 'todos_v3', 'todos_v4'];
+        for (const key of legacyKeys) {
+          const legacy = localStorage.getItem(key);
+          if (legacy) {
+            try {
+              todos = JSON.parse(legacy);
+              todos = migrateData(todos);
+              saveTodos();
+              localStorage.setItem('todos_version', CURRENT_VERSION.toString());
+              break;
+            } catch (e) {}
+          }
         }
       }
     }
 
     function saveTodos() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      localStorage.setItem('todos_version', CURRENT_VERSION.toString());
     }
 
     function loadTheme() {
@@ -920,13 +955,11 @@
       const yesterdayKey = getYesterdayKey();
       const grouped = {};
       
-      // 正常分组
       filtered.forEach(t => {
         if (!grouped[t.date]) grouped[t.date] = [];
         grouped[t.date].push({...t, isContinued: false});
       });
       
-      // 如果有昨天未完成的任务，且不在"已完成"筛选下
       if (currentFilter !== 'completed') {
         const yesterdayUndone = todos.filter(t => 
           t.date === yesterdayKey && 
@@ -935,7 +968,6 @@
         );
         
         if (yesterdayUndone.length > 0) {
-          // 将昨天未完成的任务添加到今天分组
           if (!grouped[todayKey]) grouped[todayKey] = [];
           yesterdayUndone.forEach(t => {
             grouped[todayKey].push({...t, isContinued: true});
@@ -1011,7 +1043,6 @@
       const grouped = getFilteredAndGroupedTodos();
       const dateKeys = Object.keys(grouped).sort().reverse();
       const todayKey = formatDateKey(new Date());
-      const yesterdayKey = getYesterdayKey();
       
       if (dateKeys.length === 0) {
         todoList.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><p>' + (currentFilter === 'all' ? '暂无任务，添加一个吧' : currentFilter === 'active' ? '没有进行中的任务' : '暂无已完成的任务') + '</p></div>';
@@ -1113,4 +1144,3 @@
   </script>
 </body>
 </html>
-
