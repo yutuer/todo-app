@@ -463,10 +463,31 @@
       color: var(--accent);
     }
 
+    .date-label .tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--accent-light);
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .date-label .tag.yesterday {
+      background: rgba(251, 146, 60, 0.15);
+      color: #fb923c;
+    }
+
     .date-label .count {
       font-size: 10px;
       color: var(--text-muted);
       font-weight: 400;
+    }
+
+    .date-label .sub-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: 4px;
     }
 
     .todo-list {
@@ -490,6 +511,10 @@
 
     .todo-item:hover {
       border-color: var(--text-muted);
+    }
+
+    .todo-item.continued {
+      border-left: 3px solid #fb923c;
     }
 
     @keyframes slideIn {
@@ -550,6 +575,12 @@
       font-size: 10px;
       color: var(--text-muted);
       margin-top: 3px;
+    }
+
+    .todo-source {
+      font-size: 10px;
+      color: #fb923c;
+      margin-top: 2px;
     }
 
     .btn-delete {
@@ -726,7 +757,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'todos_v3';
+    const STORAGE_KEY = 'todos_v4';
     const THEME_KEY = 'todo_theme';
     let todos = [];
     let currentFilter = 'all';
@@ -757,13 +788,17 @@
       return y + '-' + m + '-' + d;
     }
 
+    function getYesterdayKey() {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return formatDateKey(yesterday);
+    }
+
     function formatDisplayDate(dateStr) {
       const date = new Date(dateStr);
       const today = new Date();
       const todayKey = formatDateKey(today);
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayKey = formatDateKey(yesterday);
+      const yesterdayKey = getYesterdayKey();
       
       if (dateStr === todayKey) return '今天';
       if (dateStr === yesterdayKey) return '昨天';
@@ -773,6 +808,15 @@
       const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
       const weekday = weekdays[date.getDay()];
       return month + '月' + day + '日 ' + weekday;
+    }
+
+    function getDateTag(dateStr) {
+      const todayKey = formatDateKey(new Date());
+      const yesterdayKey = getYesterdayKey();
+      
+      if (dateStr === todayKey) return '<span class="tag">今天</span>';
+      if (dateStr === yesterdayKey) return '<span class="tag yesterday">昨天</span>';
+      return '';
     }
 
     function loadTodos() {
@@ -863,7 +907,7 @@
       remainingCount.textContent = remaining;
     }
 
-    function getFilteredTodos() {
+    function getFilteredAndGroupedTodos() {
       let filtered = todos;
       
       if (currentFilter === 'active') {
@@ -872,11 +916,32 @@
         filtered = filtered.filter(t => t.completed);
       }
       
+      const todayKey = formatDateKey(new Date());
+      const yesterdayKey = getYesterdayKey();
       const grouped = {};
+      
+      // 正常分组
       filtered.forEach(t => {
         if (!grouped[t.date]) grouped[t.date] = [];
-        grouped[t.date].push(t);
+        grouped[t.date].push({...t, isContinued: false});
       });
+      
+      // 如果有昨天未完成的任务，且不在"已完成"筛选下
+      if (currentFilter !== 'completed') {
+        const yesterdayUndone = todos.filter(t => 
+          t.date === yesterdayKey && 
+          !t.completed && 
+          currentFilter === 'all'
+        );
+        
+        if (yesterdayUndone.length > 0) {
+          // 将昨天未完成的任务添加到今天分组
+          if (!grouped[todayKey]) grouped[todayKey] = [];
+          yesterdayUndone.forEach(t => {
+            grouped[todayKey].push({...t, isContinued: true});
+          });
+        }
+      }
       
       return grouped;
     }
@@ -943,17 +1008,32 @@
     }
 
     function render() {
-      const filtered = getFilteredTodos();
-      const dateKeys = Object.keys(filtered).sort().reverse();
+      const grouped = getFilteredAndGroupedTodos();
+      const dateKeys = Object.keys(grouped).sort().reverse();
+      const todayKey = formatDateKey(new Date());
+      const yesterdayKey = getYesterdayKey();
       
       if (dateKeys.length === 0) {
         todoList.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><p>' + (currentFilter === 'all' ? '暂无任务，添加一个吧' : currentFilter === 'active' ? '没有进行中的任务' : '暂无已完成的任务') + '</p></div>';
       } else {
         let html = '';
         dateKeys.forEach(dateKey => {
-          const dayTodos = filtered[dateKey];
-          html += '<div class="date-section"><div class="date-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' + formatDisplayDate(dateKey) + ' <span class="count">(' + dayTodos.length + ')</span></div>';
-          html += '<div class="todo-list">' + dayTodos.map(todo => '<div class="todo-item ' + (todo.completed ? 'completed' : '') + '" data-id="' + todo.id + '"><div class="checkbox ' + (todo.completed ? 'checked' : '') + '" onclick="toggleTodo(\'' + todo.id + '\')"></div><div class="todo-content"><div class="todo-text">' + escapeHtml(todo.text) + '</div><div class="todo-time">' + formatTime(todo.createdAt) + '</div></div><button class="btn-delete" onclick="deleteTodo(\'' + todo.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div>').join('') + '</div></div>';
+          const dayTodos = grouped[dateKey];
+          const continuedCount = dayTodos.filter(t => t.isContinued).length;
+          const tag = getDateTag(dateKey);
+          
+          let subLabel = '';
+          if (dateKey === todayKey && continuedCount > 0) {
+            subLabel = '<span class="sub-label">(含昨日未完成 ' + continuedCount + ' 项)</span>';
+          }
+          
+          html += '<div class="date-section"><div class="date-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' + formatDisplayDate(dateKey) + ' ' + tag + ' <span class="count">(' + dayTodos.length + ')' + subLabel + '</span></div>';
+          html += '<div class="todo-list">' + dayTodos.map(todo => {
+            const isContinued = todo.isContinued;
+            const itemClass = 'todo-item' + (todo.completed ? ' completed' : '') + (isContinued ? ' continued' : '');
+            const timeHtml = isContinued ? '<div class="todo-time">' + formatTime(todo.createdAt) + '</div><div class="todo-source">来自昨天</div>' : '<div class="todo-time">' + formatTime(todo.createdAt) + '</div>';
+            return '<div class="' + itemClass + '" data-id="' + todo.id + '"><div class="checkbox ' + (todo.completed ? 'checked' : '') + '" onclick="toggleTodo(\'' + todo.id + '\')"></div><div class="todo-content"><div class="todo-text">' + escapeHtml(todo.text) + '</div>' + timeHtml + '</div><button class="btn-delete" onclick="deleteTodo(\'' + todo.id + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div>';
+          }).join('') + '</div></div>';
         });
         todoList.innerHTML = html;
       }
