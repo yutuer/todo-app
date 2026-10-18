@@ -126,7 +126,7 @@
 | 窄屏 375px | 无横向溢出（`scrollWidth` 360 ≤ 375）、侧栏与主栏堆叠、快捷语卡片满宽 | 通过 |
 | 控制台 | 仅 `favicon.ico` 404 一条 | 符合预期 |
 
-**同源性核对**：`HEAD == origin/main == 9f3cd23`。线上 `index.html` 与本地为 38122 vs 38785 字节，差 663 字节；`od -c` 显示本地每行末尾多一个 `\r` —— 即**内容逐字节一致，差异仅为 CRLF/LF 换行符**（`core.autocrlf=true`，GitHub Pages 取 git 对象里的 LF 版本），不是内容漂移。
+**同源性核对**：`HEAD == origin/main`；`index.html` 自 `2bd35ea` 之后未再改动，线上即该版本。线上与本地为 38122 vs 38785 字节，差 663 字节；`od -c` 显示本地每行末尾多一个 `\r` —— 即**内容逐字节一致，差异仅为 CRLF/LF 换行符**（`core.autocrlf=true`，GitHub Pages 取 git 对象里的 LF 版本），不是内容漂移。
 
 **本轮发现并修掉的缺陷**：首版把 `syncInputClear()` 只挂在 `render()` 内，导致「回车添加后输入框已空、`×` 仍显示」——因为 `render()` 早于 `todoInput.value = ''` 执行。根因是**程序化赋值 `input.value` 不触发 `input` 事件**，已在两条添加路径与快捷语填入处显式补调。该缺陷语法检查与 `git diff` 均查不出，只有浏览器实点能暴露。
 
