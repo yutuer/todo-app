@@ -1,0 +1,8 @@
+# codex 脚本注入阶段的产物归档（仅本地留档，不是站点资源，不部署）
+_archive/
+
+# 本地临时校验文件
+_c.js
+_v.js
+_v.html
+_syntax_check.js
