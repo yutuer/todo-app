@@ -56,6 +56,12 @@
     .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
     .input-card { background: var(--bg-card); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); margin-bottom: 14px; border: 1px solid var(--border); }
     .input-row { display: flex; gap: 8px; }
+    .input-wrap { position: relative; flex: 1; min-width: 0; display: flex; }
+    .input-wrap input[type="text"] { flex: 1; min-width: 0; padding-right: 34px; }
+    .input-clear { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; padding: 0; border: none; border-radius: 50%; background: var(--border); color: var(--text-secondary); cursor: pointer; display: none; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+    .input-clear.show { display: flex; }
+    .input-clear:hover { background: var(--danger); color: #fff; }
+    .input-clear svg { width: 11px; height: 11px; }
     input[type="date"] { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; cursor: pointer; background: var(--bg-primary); color: var(--text-primary); }
     input[type="text"] { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; background: var(--bg-primary); color: var(--text-primary); outline: none; }
     input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
@@ -108,7 +114,12 @@
     @media (max-width: 768px) { body { padding: 16px; } .layout { flex-direction: column; } .sidebar { width: 100%; } .calendar-card { position: static; } .input-row { flex-direction: column; } .btn-add { width: 100%; } .todo-actions { opacity: 1; } }
 
     /* ---- 快捷语面板 ---- */
-    .quick-card { background: var(--bg-card); border-radius: 14px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 14px; overflow: hidden; }
+    .quick-card { background: var(--bg-card); border-radius: 14px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-top: 14px; overflow: hidden; }
+    .sidebar .quick-chips { flex-direction: column; align-items: stretch; }
+    .sidebar .quick-chip, .sidebar .quick-add { width: 100%; }
+    .sidebar .quick-chip > span:first-child { flex: 1; min-width: 0; }
+    .sidebar .quick-editor { flex-wrap: wrap; }
+    .sidebar .quick-editor input { flex: 1 1 100%; }
     .quick-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; cursor: pointer; user-select: none; }
     .quick-head:hover { background: var(--bg-primary); }
     .quick-title { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.3px; }
@@ -153,6 +164,24 @@
         <div class="calendar-grid" id="calendar-grid"></div>
         <button class="today-btn" id="today-btn">今天</button>
       </div>
+      <div class="quick-card" id="quick-card">
+        <div class="quick-head" id="quick-head">
+          <span class="quick-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+            快捷语
+            <span class="quick-count" id="quick-count"></span>
+          </span>
+          <span class="quick-chevron" id="quick-chevron">▼</span>
+        </div>
+        <div class="quick-body" id="quick-body">
+          <div class="quick-chips" id="quick-chips"></div>
+          <div class="quick-editor" id="quick-editor">
+            <input type="text" id="quick-input" placeholder="输入常用任务短语，回车保存..." maxlength="50">
+            <button class="quick-save" id="quick-save">保存</button>
+            <button class="quick-cancel" id="quick-cancel">取消</button>
+          </div>
+        </div>
+      </div>
     </aside>
     <main class="main">
       <header>
@@ -174,26 +203,13 @@
       <div class="input-card">
         <div class="input-row">
           <input type="date" id="todo-date">
-          <input type="text" id="todo-input" placeholder="添加新任务..." maxlength="200">
-          <button class="btn-add" id="add-btn">添加</button>
-        </div>
-      </div>
-      <div class="quick-card" id="quick-card">
-        <div class="quick-head" id="quick-head">
-          <span class="quick-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-            快捷语
-            <span class="quick-count" id="quick-count"></span>
-          </span>
-          <span class="quick-chevron" id="quick-chevron">▼</span>
-        </div>
-        <div class="quick-body" id="quick-body">
-          <div class="quick-chips" id="quick-chips"></div>
-          <div class="quick-editor" id="quick-editor">
-            <input type="text" id="quick-input" placeholder="输入常用任务短语，回车保存..." maxlength="50">
-            <button class="quick-save" id="quick-save">保存</button>
-            <button class="quick-cancel" id="quick-cancel">取消</button>
+          <div class="input-wrap">
+            <input type="text" id="todo-input" placeholder="添加新任务..." maxlength="200">
+            <button class="input-clear" id="input-clear" type="button" title="清空输入" aria-label="清空输入">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
           </div>
+          <button class="btn-add" id="add-btn">添加</button>
         </div>
       </div>
       <div class="filters">
@@ -463,10 +479,11 @@ function render() {
   }
   clearContainer.style.display = todos.some(t => t.completed) ? 'block' : 'none';
   updateStats();
+  syncInputClear();
 }
 
-addBtn.onclick = () => { if (todoInput.value.trim()) { addTodo(todoInput.value, todoDate.value || formatDateKey(new Date())); todoInput.value = ''; } };
-todoInput.onkeydown = e => { if (e.key === 'Enter' && todoInput.value.trim()) { addTodo(todoInput.value, todoDate.value || formatDateKey(new Date())); todoInput.value = ''; } };
+addBtn.onclick = () => { if (todoInput.value.trim()) { addTodo(todoInput.value, todoDate.value || formatDateKey(new Date())); todoInput.value = ''; syncInputClear(); } };
+todoInput.onkeydown = e => { if (e.key === 'Enter' && todoInput.value.trim()) { addTodo(todoInput.value, todoDate.value || formatDateKey(new Date())); todoInput.value = ''; syncInputClear(); } };
 filterBtns.forEach(btn => { btn.onclick = () => { filterBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentFilter = btn.dataset.filter; render(); }; });
 clearBtn.onclick = clearCompleted;
 prevMonthBtn.onclick = () => { currentMonth.setMonth(currentMonth.getMonth() - 1); renderCalendar(); };
@@ -560,6 +577,7 @@ function useQuickPhrase(index) {
   if (typeof phrase !== 'string') return;
   todoInput.value = phrase;
   todoInput.focus();
+  syncInputClear();
   const len = phrase.length;
   try { todoInput.setSelectionRange(len, len); } catch (e) {}
 }
@@ -618,6 +636,22 @@ loadQuickPhrases();
 quickCollapsed = localStorage.getItem(QUICK_COLLAPSED_KEY) === '1';
 quickCard.classList.toggle('collapsed', quickCollapsed);
 renderQuickPhrases();
+
+/* ---------- 任务输入框：一键清空 ---------- */
+const inputClearBtn = document.getElementById('input-clear');
+
+function syncInputClear() {
+  inputClearBtn.classList.toggle('show', todoInput.value.length > 0);
+}
+
+inputClearBtn.addEventListener('click', () => {
+  todoInput.value = '';
+  syncInputClear();
+  todoInput.focus();
+});
+todoInput.addEventListener('input', syncInputClear);
+todoInput.addEventListener('compositionend', syncInputClear);
+syncInputClear();
 
 todoDate.value = selectedDate;
 loadTodos();
