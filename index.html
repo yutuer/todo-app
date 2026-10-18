@@ -14,10 +14,6 @@
       --accent: #8b5cf6; --accent-light: rgba(139,92,246,0.15);
       --accent-glow: rgba(139,92,246,0.3); --danger: #f87171; --success: #4ade80; --shadow: 0 4px 24px rgba(0,0,0,0.4);
     }
-    [data-theme="cyan"] { --accent: #06b6d4; --accent-light: rgba(6,182,212,0.15); --accent-glow: rgba(6,182,212,0.3); }
-    [data-theme="coral"] { --accent: #f97316; --accent-light: rgba(249,115,22,0.15); --accent-glow: rgba(249,115,22,0.3); }
-    [data-theme="rose"] { --accent: #ec4899; --accent-light: rgba(236,72,153,0.15); --accent-glow: rgba(236,72,153,0.3); }
-    [data-theme="emerald"] { --accent: #10b981; --accent-light: rgba(16,185,129,0.15); --accent-glow: rgba(16,185,129,0.3); }
     body { font-family: Inter, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 24px; }
     .layout { display: flex; gap: 20px; max-width: 1100px; margin: 0 auto; }
     .sidebar { width: 200px; flex-shrink: 0; }
@@ -25,15 +21,6 @@
     header { text-align: center; margin-bottom: 20px; }
     h1 { font-size: 24px; font-weight: 700; background: linear-gradient(135deg,var(--text-primary),var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .subtitle { color: var(--text-secondary); font-size: 12px; }
-    .theme-switcher { display: flex; justify-content: center; gap: 8px; margin-top: 12px; padding: 10px; background: var(--bg-card); border-radius: 50px; width: fit-content; margin-left: auto; margin-right: auto; border: 1px solid var(--border); }
-    .theme-dot { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
-    .theme-dot:hover { transform: scale(1.15); }
-    .theme-dot.active { border-color: var(--text-primary); transform: scale(1.1); box-shadow: 0 0 12px var(--accent-glow); }
-    .theme-dot[data-theme="violet"] { background: linear-gradient(135deg,#8b5cf6,#7c3aed); }
-    .theme-dot[data-theme="cyan"] { background: linear-gradient(135deg,#06b6d4,#0891b2); }
-    .theme-dot[data-theme="coral"] { background: linear-gradient(135deg,#f97316,#ea580c); }
-    .theme-dot[data-theme="rose"] { background: linear-gradient(135deg,#ec4899,#db2777); }
-    .theme-dot[data-theme="emerald"] { background: linear-gradient(135deg,#10b981,#059669); }
     .calendar-card { background: var(--bg-card); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); border: 1px solid var(--border); position: sticky; top: 24px; }
     .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .cal-title { font-size: 13px; font-weight: 600; }
@@ -188,13 +175,6 @@
       <header>
         <h1>待办事项</h1>
         <p class="subtitle">记录每天要完成的任务</p>
-        <div class="theme-switcher" id="theme-switcher">
-          <div class="theme-dot active" data-theme="violet"></div>
-          <div class="theme-dot" data-theme="cyan"></div>
-          <div class="theme-dot" data-theme="coral"></div>
-          <div class="theme-dot" data-theme="rose"></div>
-          <div class="theme-dot" data-theme="emerald"></div>
-        </div>
         <div class="stats">
           <div class="stat"><div class="stat-value" id="total-count">0</div><div class="stat-label">总计</div></div>
           <div class="stat"><div class="stat-value" id="completed-count">0</div><div class="stat-label">已完成</div></div>
@@ -224,7 +204,6 @@
   </div>
   <script>
 const STORAGE_KEY = 'todos_v3';
-const THEME_KEY = 'todo_theme';
 const COLLAPSED_KEY = 'todos_collapsed';
 
 function formatDateKey(date) {
@@ -296,7 +275,6 @@ const calendarGrid = document.getElementById('calendar-grid');
 const prevMonthBtn = document.getElementById('prev-month');
 const nextMonthBtn = document.getElementById('next-month');
 const todayBtn = document.getElementById('today-btn');
-const themeSwitcher = document.getElementById('theme-switcher');
 
 function loadTodos() {
   const s = localStorage.getItem(STORAGE_KEY);
@@ -305,16 +283,6 @@ function loadTodos() {
 
 function saveTodos() { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); }
 function saveCollapsed() { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedDates])); }
-
-function loadTheme() {
-  const t = localStorage.getItem(THEME_KEY);
-  if (t) {
-    document.body.dataset.theme = t;
-    document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.dataset.theme === t));
-  }
-}
-
-function saveTheme(t) { localStorage.setItem(THEME_KEY, t); }
 
 function addTodo(text, date) {
   todos.unshift({ id: generateId(), text: text.trim(), completed: false, createdAt: Date.now(), date: date });
@@ -490,7 +458,6 @@ clearBtn.onclick = clearCompleted;
 prevMonthBtn.onclick = () => { currentMonth.setMonth(currentMonth.getMonth() - 1); renderCalendar(); };
 nextMonthBtn.onclick = () => { currentMonth.setMonth(currentMonth.getMonth() + 1); renderCalendar(); };
 todayBtn.onclick = () => { selectedDate = formatDateKey(new Date()); currentMonth = new Date(); todoDate.value = selectedDate; renderCalendar(); render(); };
-themeSwitcher.onclick = e => { const dot = e.target.closest('.theme-dot'); if (dot) { document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active')); dot.classList.add('active'); document.body.dataset.theme = dot.dataset.theme; saveTheme(dot.dataset.theme); } };
 
 /* ---------- 快捷语面板 ---------- */
 const QUICK_KEY = 'quick_phrases_v1';
@@ -656,7 +623,6 @@ syncInputClear();
 
 todoDate.value = selectedDate;
 loadTodos();
-loadTheme();
 renderCalendar();
 render();
   </script>
