@@ -106,7 +106,7 @@
     .btn-clear { padding: 8px 16px; background: transparent; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; font-family: inherit; }
     .btn-clear:hover { border-color: var(--danger); color: var(--danger); }
     @media (max-width: 768px) { body { padding: 16px; } .layout { flex-direction: column; } .sidebar { width: 100%; } .calendar-card { position: static; } .input-row { flex-direction: column; } .btn-add { width: 100%; } .todo-actions { opacity: 1; } }
-  .quick-panel{background:var(--bg-card);border-radius:12px;padding:14px;border:1px solid var(--border);margin-top:16px}.quick-panel-title{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px}.quick-panel-title svg{width:12px;height:12px}.quick-list{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto}.quick-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-secondary);border-radius:8px;cursor:pointer;transition:all 0.2s;border:1px solid transparent;font-size:12px;color:var(--text-primary)}.quick-item:hover{background:var(--bg-hover);border-color:var(--accent)}.quick-item-count{font-size:10px;color:var(--text-muted);background:var(--bg-hover);padding:1px 5px;border-radius:8px;margin-left:auto}.quick-item-actions{display:none;gap:4px}.quick-item:hover .quick-item-count{display:none}.quick-item:hover .quick-item-actions{display:flex}.quick-action-btn{width:20px;height:20px;border:none;background:var(--bg-card);border-radius:4px;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s}.quick-action-btn:hover{background:var(--accent);color:white}.quick-action-btn.delete:hover{background:var(--danger)}.quick-action-btn svg{width:10px;height:10px}.quick-add-btn{width:100%;margin-top:8px;padding:8px;border:1px dashed var(--border);background:transparent;border-radius:8px;color:var(--text-muted);font-size:12px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px}.quick-add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}.quick-add-btn svg{width:12px;height:12px}</style>
+  </style>
 </head>
 <body>
   <div class="layout">
@@ -121,7 +121,7 @@
         <div class="calendar-grid" id="calendar-grid"></div>
         <button class="today-btn" id="today-btn">今天</button>
       </div>
-    <div class="quick-panel"><div class="quick-panel-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg>快捷语</div><div class="quick-list" id="quick-list"></div><button class="quick-add-btn" id="quick-add-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>添加</button></div></aside>
+    </aside>
     <main class="main">
       <header>
         <h1>待办事项</h1>
@@ -253,7 +253,7 @@ function addTodo(text, date) {
   todos.unshift({ id: generateId(), text: text.trim(), completed: false, createdAt: Date.now(), date: date });
   saveTodos();
   renderCalendar();
-  render();renderQuickPhrases();
+  render();
 }
 
 function toggleTodo(id) {
@@ -263,13 +263,13 @@ function toggleTodo(id) {
     t.completedAt = t.completed ? Date.now() : null;
     saveTodos();
     renderCalendar();
-    render();renderQuickPhrases();
+    render();
   }
 }
 
 function editTodo(id, text) {
   const t = todos.find(x => x.id === id);
-  if (t && text.trim()) { t.text = text.trim(); saveTodos(); render();renderQuickPhrases(); }
+  if (t && text.trim()) { t.text = text.trim(); saveTodos(); render(); }
 }
 
 function changeDate(id, currentDate) {
@@ -283,7 +283,7 @@ function changeDate(id, currentDate) {
   input.onchange = () => {
     if (input.value !== currentDate) {
       const t = todos.find(x => x.id === id);
-      if (t) { t.date = input.value; saveTodos(); renderCalendar(); render();renderQuickPhrases(); }
+      if (t) { t.date = input.value; saveTodos(); renderCalendar(); render(); }
     }
     document.body.removeChild(overlay);
     document.body.removeChild(input);
@@ -297,14 +297,14 @@ function deleteTodo(id) {
   todos = todos.filter(x => x.id !== id);
   saveTodos();
   renderCalendar();
-  render();renderQuickPhrases();
+  render();
 }
 
 function clearCompleted() {
   todos = todos.filter(x => !x.completed);
   saveTodos();
   renderCalendar();
-  render();renderQuickPhrases();
+  render();
 }
 
 function updateStats() {
@@ -348,7 +348,7 @@ function startEdit(id, text) {
   input.value = text;
   input.style.cssText = 'width:100%;padding:6px 10px;border:1px solid var(--accent);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg-primary);color:var(--text-primary);outline:none;';
   input.onblur = () => editTodo(id, input.value);
-  input.onkeydown = e => { if (e.key === 'Enter') editTodo(id, input.value); if (e.key === 'Escape') render();renderQuickPhrases(); };
+  input.onkeydown = e => { if (e.key === 'Enter') editTodo(id, input.value); if (e.key === 'Escape') render(); };
   content.insertBefore(input, textEl);
   input.focus();
   input.select();
@@ -376,53 +376,7 @@ function renderCalendar() {
   for (let d = 1; d < (remaining === 0 ? 0 : 7 - remaining); d++) html += '<div class="cal-day other-month">' + d + '</div>';
   calendarGrid.innerHTML = html;
   calendarGrid.querySelectorAll('.cal-day:not(.other-month)').forEach(el => {
-    el.onclick = () => { selectedDate = el.dataset.date; let quickPhrases=[];
-let quickEditingId=null;
-const quickList=document.getElementById('"'"'quick-list'"'"');
-const quickAddBtn=document.getElementById('"'"'quick-add-btn'"'"');
-
-function saveQuickPhrases(){localStorage.setItem('"'"'todos_quick'"'"',JSON.stringify(quickPhrases))}
-
-function loadQuickPhrases(){
-  const stored=localStorage.getItem('"'"'todos_quick'"'"');
-  if(stored){quickPhrases=JSON.parse(stored)}
-  else{quickPhrases=[{id:generateId(),text:'"'"'开会'"'"',count:0},{id:generateId(),text:'"'"'写报告'"'"',count:0},{id:generateId(),text:'"'"'打电话'"'"',count:0}];saveQuickPhrases()}
-}
-
-function renderQuickPhrases(){
-  quickList.innerHTML=quickPhrases.map(q=>'"'"'<div class="quick-item" data-id="'""'"+q.id+'""'"'"><span class="quick-item-text">'""'"+escapeHtml(q.text)+'"'"'</span><span class="quick-item-count">'""'"+q.count+'""'"'</span><div class="quick-item-actions"><button class="quick-action-btn edit" data-id="'""'"+q.id+'""'"'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="quick-action-btn delete" data-id="'""'"+q.id+'""'"'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div></div>'"'"').join('"'"''"'"');
-  quickList.querySelectorAll('"'"'.quick-item'"'"').forEach(el=>{
-    el.addEventListener('"'"'click'"'"',(e)=>{
-      if(e.target.closest('"'"'.quick-action-btn'"'"'))return;
-      const id=el.dataset.id;
-      const phrase=quickPhrases.find(q=>q.id===id);
-      if(phrase){phrase.count++;saveQuickPhrases();todoInput.value=phrase.text;todoInput.focus();renderQuickPhrases()}
-    })
-  });
-  quickList.querySelectorAll('"'"'.quick-action-btn.edit'"'"').forEach(btn=>{
-    btn.addEventListener('"'"'click'"'"',(e)=>{
-      e.stopPropagation();
-      quickEditingId=btn.dataset.id;
-      const phrase=quickPhrases.find(q=>q.id===quickEditingId);
-      if(phrase){startEdit(phrase.id,phrase.text);quickEditingId=null}
-    })
-  });
-  quickList.querySelectorAll('"'"'.quick-action-btn.delete'"'"').forEach(btn=>{
-    btn.addEventListener('"'"'click'"'"',(e)=>{
-      e.stopPropagation();
-      quickEditingId=btn.dataset.id;
-      quickPhrases=quickPhrases.filter(q=>q.id!==quickEditingId);
-      saveQuickPhrases();
-      renderQuickPhrases()
-    })
-  })
-}
-
-quickAddBtn.addEventListener('"'"'click'"'"',()=>{
-  const text=prompt('"'"'输入快捷语:'"'"');
-  if(text&&text.trim()){quickPhrases.push({id:generateId(),text:text.trim(),count:0});saveQuickPhrases();renderQuickPhrases()}
-});
-todoDate.value = selectedDate; renderCalendar(); render();renderQuickPhrases(); };
+    el.onclick = () => { selectedDate = el.dataset.date; todoDate.value = selectedDate; renderCalendar(); render(); };
   });
 }
 
@@ -463,110 +417,18 @@ function render() {
 
 addBtn.onclick = () => { if (todoInput.value.trim()) { addTodo(todoInput.value, todoDate.value || formatDateKey(new Date())); todoInput.value = ''; } };
 todoInput.onkeydown = e => { if (e.key === 'Enter' && todoInput.value.trim()) { addTodo(todoInput.value, todoDate.value || formatDateKey(new Date())); todoInput.value = ''; } };
-filterBtns.forEach(btn => { btn.onclick = () => { filterBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentFilter = btn.dataset.filter; render();renderQuickPhrases(); }; });
+filterBtns.forEach(btn => { btn.onclick = () => { filterBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentFilter = btn.dataset.filter; render(); }; });
 clearBtn.onclick = clearCompleted;
 prevMonthBtn.onclick = () => { currentMonth.setMonth(currentMonth.getMonth() - 1); renderCalendar(); };
 nextMonthBtn.onclick = () => { currentMonth.setMonth(currentMonth.getMonth() + 1); renderCalendar(); };
-todayBtn.onclick = () => { selectedDate = formatDateKey(new Date()); currentMonth = new Date(); let quickPhrases=[];
-let quickEditingId=null;
-const quickList=document.getElementById('"'"'quick-list'"'"');
-const quickAddBtn=document.getElementById('"'"'quick-add-btn'"'"');
-
-function saveQuickPhrases(){localStorage.setItem('"'"'todos_quick'"'"',JSON.stringify(quickPhrases))}
-
-function loadQuickPhrases(){
-  const stored=localStorage.getItem('"'"'todos_quick'"'"');
-  if(stored){quickPhrases=JSON.parse(stored)}
-  else{quickPhrases=[{id:generateId(),text:'"'"'开会'"'"',count:0},{id:generateId(),text:'"'"'写报告'"'"',count:0},{id:generateId(),text:'"'"'打电话'"'"',count:0}];saveQuickPhrases()}
-}
-
-function renderQuickPhrases(){
-  quickList.innerHTML=quickPhrases.map(q=>'"'"'<div class="quick-item" data-id="'""'"+q.id+'""'"'"><span class="quick-item-text">'""'"+escapeHtml(q.text)+'"'"'</span><span class="quick-item-count">'""'"+q.count+'""'"'</span><div class="quick-item-actions"><button class="quick-action-btn edit" data-id="'""'"+q.id+'""'"'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="quick-action-btn delete" data-id="'""'"+q.id+'""'"'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div></div>'"'"').join('"'"''"'"');
-  quickList.querySelectorAll('"'"'.quick-item'"'"').forEach(el=>{
-    el.addEventListener('"'"'click'"'"',(e)=>{
-      if(e.target.closest('"'"'.quick-action-btn'"'"'))return;
-      const id=el.dataset.id;
-      const phrase=quickPhrases.find(q=>q.id===id);
-      if(phrase){phrase.count++;saveQuickPhrases();todoInput.value=phrase.text;todoInput.focus();renderQuickPhrases()}
-    })
-  });
-  quickList.querySelectorAll('"'"'.quick-action-btn.edit'"'"').forEach(btn=>{
-    btn.addEventListener('"'"'click'"'"',(e)=>{
-      e.stopPropagation();
-      quickEditingId=btn.dataset.id;
-      const phrase=quickPhrases.find(q=>q.id===quickEditingId);
-      if(phrase){startEdit(phrase.id,phrase.text);quickEditingId=null}
-    })
-  });
-  quickList.querySelectorAll('"'"'.quick-action-btn.delete'"'"').forEach(btn=>{
-    btn.addEventListener('"'"'click'"'"',(e)=>{
-      e.stopPropagation();
-      quickEditingId=btn.dataset.id;
-      quickPhrases=quickPhrases.filter(q=>q.id!==quickEditingId);
-      saveQuickPhrases();
-      renderQuickPhrases()
-    })
-  })
-}
-
-quickAddBtn.addEventListener('"'"'click'"'"',()=>{
-  const text=prompt('"'"'输入快捷语:'"'"');
-  if(text&&text.trim()){quickPhrases.push({id:generateId(),text:text.trim(),count:0});saveQuickPhrases();renderQuickPhrases()}
-});
-todoDate.value = selectedDate; renderCalendar(); render();renderQuickPhrases(); };
+todayBtn.onclick = () => { selectedDate = formatDateKey(new Date()); currentMonth = new Date(); todoDate.value = selectedDate; renderCalendar(); render(); };
 themeSwitcher.onclick = e => { const dot = e.target.closest('.theme-dot'); if (dot) { document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active')); dot.classList.add('active'); document.body.dataset.theme = dot.dataset.theme; saveTheme(dot.dataset.theme); } };
 
-let quickPhrases=[];
-let quickEditingId=null;
-const quickList=document.getElementById('"'"'quick-list'"'"');
-const quickAddBtn=document.getElementById('"'"'quick-add-btn'"'"');
-
-function saveQuickPhrases(){localStorage.setItem('"'"'todos_quick'"'"',JSON.stringify(quickPhrases))}
-
-function loadQuickPhrases(){
-  const stored=localStorage.getItem('"'"'todos_quick'"'"');
-  if(stored){quickPhrases=JSON.parse(stored)}
-  else{quickPhrases=[{id:generateId(),text:'"'"'开会'"'"',count:0},{id:generateId(),text:'"'"'写报告'"'"',count:0},{id:generateId(),text:'"'"'打电话'"'"',count:0}];saveQuickPhrases()}
-}
-
-function renderQuickPhrases(){
-  quickList.innerHTML=quickPhrases.map(q=>'"'"'<div class="quick-item" data-id="'""'"+q.id+'""'"'"><span class="quick-item-text">'""'"+escapeHtml(q.text)+'"'"'</span><span class="quick-item-count">'""'"+q.count+'""'"'</span><div class="quick-item-actions"><button class="quick-action-btn edit" data-id="'""'"+q.id+'""'"'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="quick-action-btn delete" data-id="'""'"+q.id+'""'"'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div></div>'"'"').join('"'"''"'"');
-  quickList.querySelectorAll('"'"'.quick-item'"'"').forEach(el=>{
-    el.addEventListener('"'"'click'"'"',(e)=>{
-      if(e.target.closest('"'"'.quick-action-btn'"'"'))return;
-      const id=el.dataset.id;
-      const phrase=quickPhrases.find(q=>q.id===id);
-      if(phrase){phrase.count++;saveQuickPhrases();todoInput.value=phrase.text;todoInput.focus();renderQuickPhrases()}
-    })
-  });
-  quickList.querySelectorAll('"'"'.quick-action-btn.edit'"'"').forEach(btn=>{
-    btn.addEventListener('"'"'click'"'"',(e)=>{
-      e.stopPropagation();
-      quickEditingId=btn.dataset.id;
-      const phrase=quickPhrases.find(q=>q.id===quickEditingId);
-      if(phrase){startEdit(phrase.id,phrase.text);quickEditingId=null}
-    })
-  });
-  quickList.querySelectorAll('"'"'.quick-action-btn.delete'"'"').forEach(btn=>{
-    btn.addEventListener('"'"'click'"'"',(e)=>{
-      e.stopPropagation();
-      quickEditingId=btn.dataset.id;
-      quickPhrases=quickPhrases.filter(q=>q.id!==quickEditingId);
-      saveQuickPhrases();
-      renderQuickPhrases()
-    })
-  })
-}
-
-quickAddBtn.addEventListener('"'"'click'"'"',()=>{
-  const text=prompt('"'"'输入快捷语:'"'"');
-  if(text&&text.trim()){quickPhrases.push({id:generateId(),text:text.trim(),count:0});saveQuickPhrases();renderQuickPhrases()}
-});
 todoDate.value = selectedDate;
-loadTodos();loadQuickPhrases();
+loadTodos();
 loadTheme();
 renderCalendar();
-render();renderQuickPhrases();
+render();
   </script>
 </body>
 </html>
