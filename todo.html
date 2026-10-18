@@ -11,7 +11,7 @@
       --bg-primary: #0f0f10; --bg-card: #1c1c1f; --text-primary: #fafafa;
       --text-secondary: #a1a1aa; --text-muted: #71717a; --border: #27272a;
       --accent: #8b5cf6; --accent-light: rgba(139,92,246,0.15);
-      --accent-glow: rgba(139,92,246,0.3); --danger: #f87171; --shadow: 0 4px 24px rgba(0,0,0,0.4);
+      --accent-glow: rgba(139,92,246,0.3); --danger: #f87171; --success: #4ade80; --shadow: 0 4px 24px rgba(0,0,0,0.4);
     }
     [data-theme="cyan"] { --accent: #06b6d4; --accent-light: rgba(6,182,212,0.15); --accent-glow: rgba(6,182,212,0.3); }
     [data-theme="coral"] { --accent: #f97316; --accent-light: rgba(249,115,22,0.15); --accent-glow: rgba(249,115,22,0.3); }
@@ -81,16 +81,18 @@
     .todo-list { display: flex; flex-direction: column; gap: 6px; }
     .todo-item { background: var(--bg-card); border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); }
     .todo-item.continued { border-left: 3px solid #fb923c; }
-    .checkbox { width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .todo-item.completed { opacity: 0.7; }
+    .checkbox { width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
     .checkbox:hover { border-color: var(--accent); }
-    .checkbox.checked { background: var(--accent); border-color: var(--accent); }
+    .checkbox.checked { background: var(--success); border-color: var(--success); }
     .checkbox.checked::after { content: ''; width: 5px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
     .todo-content { flex: 1; min-width: 0; }
     .todo-date { font-size: 10px; color: var(--accent); cursor: pointer; margin-bottom: 2px; }
     .todo-date:hover { text-decoration: underline; }
     .todo-text { font-size: 13px; line-height: 1.4; word-break: break-word; }
     .todo-item.completed .todo-text { color: var(--text-muted); text-decoration: line-through; }
-    .todo-time { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+    .todo-time { font-size: 10px; color: var(--text-muted); margin-top: 3px; display: flex; gap: 8px; }
+    .todo-time .completed-time { color: var(--success); }
     .todo-source { font-size: 10px; color: #fb923c; }
     .todo-actions { display: flex; gap: 4px; opacity: 0; }
     .todo-item:hover .todo-actions { opacity: 1; }
@@ -172,8 +174,7 @@ function getYesterdayKey() {
 }
 
 function isPastDate(dateStr) {
-  const today = formatDateKey(new Date());
-  return dateStr < today;
+  return dateStr < formatDateKey(new Date());
 }
 
 function formatDisplayDate(dateStr) {
@@ -182,10 +183,7 @@ function formatDisplayDate(dateStr) {
   const yesterday = getYesterdayKey();
   if (dateStr === today) return '今天';
   if (dateStr === yesterday) return '昨天';
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
-  return month + '月' + day + '日 ' + weekdays[date.getDay()];
+  return (date.getMonth() + 1) + '月' + date.getDate() + '日 ' + ['周日','周一','周二','周三','周四','周五','周六'][date.getDay()];
 }
 
 function getDateTag(dateStr) {
@@ -197,7 +195,17 @@ function getDateTag(dateStr) {
 }
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
-function formatTime(ts) { const d = new Date(ts); return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); }
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+
+function formatFullTime(ts) {
+  const d = new Date(ts);
+  return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + formatTime(ts);
+}
+
 function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
 
 let todos = [];
@@ -229,7 +237,6 @@ function loadTodos() {
 }
 
 function saveTodos() { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); }
-
 function saveCollapsed() { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedDates])); }
 
 function loadTheme() {
@@ -251,7 +258,13 @@ function addTodo(text, date) {
 
 function toggleTodo(id) {
   const t = todos.find(x => x.id === id);
-  if (t) { t.completed = !t.completed; saveTodos(); renderCalendar(); render(); }
+  if (t) {
+    t.completed = !t.completed;
+    t.completedAt = t.completed ? Date.now() : null;
+    saveTodos();
+    renderCalendar();
+    render();
+  }
 }
 
 function editTodo(id, text) {
@@ -301,11 +314,8 @@ function updateStats() {
 }
 
 function toggleCollapse(dateKey) {
-  if (collapsedDates.has(dateKey)) {
-    collapsedDates.delete(dateKey);
-  } else {
-    collapsedDates.add(dateKey);
-  }
+  if (collapsedDates.has(dateKey)) collapsedDates.delete(dateKey);
+  else collapsedDates.add(dateKey);
   saveCollapsed();
   const section = document.querySelector('.date-section[data-date="' + dateKey + '"]');
   if (section) section.classList.toggle('collapsed', collapsedDates.has(dateKey));
@@ -392,7 +402,10 @@ function render() {
       html += '<div class="date-label" onclick="toggleCollapse(\'' + dateKey + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>' + formatDisplayDate(dateKey) + ' ' + tag + ' <span class="count">(' + dayTodos.length + ')' + subLabel + hint + '</span><span class="chevron">▼</span></div>';
       html += '<div class="todo-list">' + dayTodos.map(t => {
         const cls = 'todo-item' + (t.completed ? ' completed' : '') + (t.isContinued ? ' continued' : '');
-        const timeHtml = t.isContinued ? '<div class="todo-time">' + formatTime(t.createdAt) + '</div><div class="todo-source">来自昨天</div>' : '<div class="todo-time">' + formatTime(t.createdAt) + '</div>';
+        let timeHtml = '<div class="todo-time"><span>创建 ' + formatTime(t.createdAt) + '</span>';
+        if (t.completed && t.completedAt) timeHtml += '<span class="completed-time">完成 ' + formatFullTime(t.completedAt) + '</span>';
+        timeHtml += '</div>';
+        if (t.isContinued) timeHtml = '<div class="todo-time"><span class="todo-source">来自昨天</span></div>';
         return '<div class="' + cls + '" data-id="' + t.id + '"><div class="checkbox' + (t.completed ? ' checked' : '') + '" onclick="toggleTodo(\'' + t.id + '\')"></div><div class="todo-content"><div class="todo-date" onclick="changeDate(\'' + t.id + '\',\'' + t.date + '\')">' + formatDisplayDate(t.date) + '</div><div class="todo-text" ondblclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')">' + escapeHtml(t.text) + '</div>' + timeHtml + '</div><div class="todo-actions"><button class="btn-edit" onclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-delete" onclick="deleteTodo(\'' + t.id + '\')" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>';
       }).join('') + '</div></div>';
     });
