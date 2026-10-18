@@ -23,6 +23,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Stamp build info
+        run: |
+          STAMP="${GITHUB_SHA:0:7} - $(date -u '+%m-%d %H:%M') UTC"
+          sed -i "s|id=\"build-stamp\">dev<|id=\"build-stamp\">${STAMP}<|" index.html
+          echo "build stamp -> ${STAMP}"
+          grep -o 'id="build-stamp">[^<]*' index.html || true
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
