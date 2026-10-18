@@ -142,19 +142,20 @@
     @media (max-width: 768px) { .quick-editor { flex-wrap: wrap; } .quick-editor input { flex: 1 1 100%; } }
 
     /* ================= 风格皮肤 =================
-       默认完全不生效：只有 URL 带 ?skin=xxx 时才加 body.has-skinbar 与 data-skin。
-       这样主站保持紫色单主题，风格预览用同一个地址 + 参数即可。 */
-    .skin-bar { display: none; position: fixed; top: 0; left: 0; right: 0; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; padding: 9px 12px; background: rgba(18,18,22,.94); border-bottom: 1px solid rgba(255,255,255,.12); box-shadow: 0 6px 24px rgba(0,0,0,.45); z-index: 9999; font-family: Inter, system-ui, sans-serif; }
-    .skin-bar.show { display: flex; }
+       切换器常驻，默认紫色。选择记在 localStorage（todo_skin），
+       也支持 URL 参数 ?skin=xxx 直接指定（优先级最高）。 */
+    .skin-bar { display: flex; position: fixed; top: 0; left: 0; right: 0; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; padding: 9px 12px; background: rgba(18,18,22,.94); border-bottom: 1px solid rgba(255,255,255,.12); box-shadow: 0 6px 24px rgba(0,0,0,.45); z-index: 9999; font-family: Inter, system-ui, sans-serif; }
     .skin-label { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 11px; letter-spacing: 2px; color: #6b6b74; white-space: nowrap; }
     .skin-btn { padding: 7px 14px; border: none; border-radius: 999px; background: transparent; color: #a1a1aa; font-size: 12px; font-family: inherit; cursor: pointer; transition: background .18s, color .18s; white-space: nowrap; }
     .skin-btn:hover { color: #fff; background: rgba(255,255,255,.09); }
     .skin-btn.active { background: #8b5cf6; color: #fff; font-weight: 600; }
     body.has-skinbar { padding-top: 58px; }
+    body.has-skinbar .sidebar { top: 82px; max-height: calc(100vh - 106px); }
     @media (max-width: 760px) {
       .skin-label { display: none; }
       .skin-btn { padding: 6px 9px; font-size: 11px; }
       body.has-skinbar { padding-top: 52px; }
+      body.has-skinbar .sidebar { top: auto; max-height: none; }
     }
 
     /* ---------- 1. 卡通风 ---------- */
@@ -294,7 +295,7 @@
     body[data-skin="ink"] .stat-value { text-shadow: none; }
   </style>
 </head>
-<body>
+<body class="has-skinbar">
   <div class="skin-bar" role="group" aria-label="风格切换">
     <span class="skin-label">风格预览</span>
     <button class="skin-btn active" data-skin="violet">默认紫</button>
@@ -786,29 +787,46 @@ todoInput.addEventListener('input', syncInputClear);
 todoInput.addEventListener('compositionend', syncInputClear);
 syncInputClear();
 
-/* ---------- 风格皮肤：仅当 URL 带 ?skin= 时启用，主站默认完全不受影响 ---------- */
+/* ---------- 风格皮肤：切换器常驻，默认紫，选择持久化 ---------- */
 (function () {
-  const skin = new URLSearchParams(location.search).get('skin');
-  if (!skin) return;
+  const SKIN_KEY = 'todo_skin';
+  const SKINS = ['violet', 'cartoon', 'cyber', 'robot', 'anime', 'ink'];
   const bar = document.querySelector('.skin-bar');
   if (!bar) return;
-  bar.classList.add('show');
-  document.body.classList.add('has-skinbar');
   const btns = Array.prototype.slice.call(bar.querySelectorAll('.skin-btn'));
 
-  function apply(name) {
-    const effective = (name === 'lab') ? 'violet' : name;
-    if (effective === 'violet') document.body.removeAttribute('data-skin');
-    else document.body.setAttribute('data-skin', effective);
-    btns.forEach(b => b.classList.toggle('active', b.dataset.skin === effective));
+  function normalize(name) {
+    if (name === 'lab') return 'violet';
+    return SKINS.indexOf(name) >= 0 ? name : 'violet';
   }
+
+  // 唯一的状态出口：改 body 属性 + 同步按钮高亮。定时切换时直接调用它即可。
+  function apply(name) {
+    const skin = normalize(name);
+    if (skin === 'violet') document.body.removeAttribute('data-skin');
+    else document.body.setAttribute('data-skin', skin);
+    btns.forEach(b => b.classList.toggle('active', b.dataset.skin === skin));
+    return skin;
+  }
+
+  function remember(skin) {
+    try { localStorage.setItem(SKIN_KEY, skin); } catch (e) {}
+  }
+
+  let initial = 'violet';
+  try {
+    const param = new URLSearchParams(location.search).get('skin');
+    const stored = localStorage.getItem(SKIN_KEY);
+    initial = normalize(param || stored || 'violet');
+  } catch (e) {}
+
+  apply(initial);
 
   bar.addEventListener('click', e => {
     const b = e.target.closest('.skin-btn');
-    if (b) apply(b.dataset.skin);
+    if (!b) return;
+    remember(apply(b.dataset.skin));
   });
-
-  apply(skin);
 })();
 
 todoDate.value = selectedDate;
