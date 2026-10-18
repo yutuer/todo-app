@@ -6,3 +6,6 @@ _c.js
 _v.js
 _v.html
 _syntax_check.js
+
+# 构建产物：由 lab/build.py 从 index.html + lab/overlay.html 生成，不入库
+style-showcase.html
