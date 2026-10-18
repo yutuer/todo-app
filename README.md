@@ -15,7 +15,7 @@
 ## 1. 技术形态
 
 - **单文件**：`index.html` 一个文件装下 HTML + CSS + JS，无构建、无打包、无 npm 依赖。
-- **例外**：5 套风格皮肤的 CSS 内联在本文件里，但**默认完全不生效**——只有 URL 带 `?skin=xxx` 时才启用（见 §4.7）。
+- **例外**：5 套风格皮肤的 CSS 内联在本文件里，顶部**常驻**切换器，默认紫色，选择记在 `localStorage`（见 §4.7）。
 - **存储**：`localStorage`，键见文末第 8 节。
 - **部署**：`.github/workflows/deploy.yml`，向 `main` 推送即自动发布到 GitHub Pages（`path: .` 全量上传，Actions 只 checkout 被 git 跟踪的文件，因此未跟踪的垃圾文件不会被发布）。
 - **样式**：暗色主题，CSS 变量驱动，**单一强调色紫色 `#8b5cf6`**（2026-10-18 已移除 cyan/coral/rose/emerald 四套切换色）。
@@ -186,25 +186,30 @@
 **TODO-9　构建戳**：页脚 `#build-stamp` 本地占位 `dev`；`deploy.yml` 在 checkout 后 `sed` 注入 `SHA7 - MM-DD HH:MM UTC`。CI 实际输出：`9854888 - 10-18 08:48 UTC`。
 收益：以后"我看到的到底是哪个版本"一眼可判，且顺带成为 Step 4 的部署验收手段——**戳里的 SHA 必须等于 HEAD 前 7 位**。
 
-### 4.7 风格皮肤（单文件 + URL 参数，`d044ceb`）
+### 4.7 风格皮肤（常驻切换器，单文件，`4dd4e29`）
 
-**一句话**：皮肤 CSS 内联在 `index.html` 里，默认不生效；加 `?skin=` 才启用，**永远只有一个地址**。
+**一句话**：打开任意地址都看到顶部切换器，默认紫色，选中即记住。**永远只有一个地址。**
 
 ```
-https://yutuer.github.io/todo-app/               → 主站，紫色单主题，无切换器
-https://yutuer.github.io/todo-app/?skin=lab      → 预览模式：同上 + 顶部切换器
-https://yutuer.github.io/todo-app/?skin=cyber    → 赛博皮肤（切换器自动出现，可直接点别的）
+https://yutuer.github.io/todo-app/            → 常驻切换器，默认紫
+https://yutuer.github.io/todo-app/?skin=cyber → 直接指定某套（会覆盖记忆，但不写入）
 ```
 
 五套皮肤：`cartoon` 卡通风 / `cyber` 赛博朋克 / `robot` 机器人 / `anime` 二次元 / `ink` 水墨。
 
-**实现要点**：
-- CSS 全部内联在主文件，`body[data-skin="xxx"]` 覆盖 12 个设计变量 + 各皮肤签名样式
-- 切换器 DOM 常驻但 `display: none`；JS 只有一句 `URLSearchParams.get('skin')`，取不到就直接 `return`，**主站一个字节的渲染差异都没有**
-- `?skin=lab` 视为「默认紫 + 显示切换器」
+**状态优先级**：`URL ?skin=` > `localStorage.todo_skin` > `violet`。
+点击按钮时写入 `localStorage`，刷新后保持；URL 参数只影响当次，不写库。
 
-**演进记录（重要，别走回头路）**：曾试过 `lab/overlay.html` + `lab/build.py` 构建时合成 `style-showcase.html`（`061c318`），技术上不产生副本，但代价是**多一个地址、多一层构建**，主人要记两个 URL——与「单文件零依赖」的初衷相悖，已废弃。
-`style-showcase.html` 保留为跳转页 → `./?skin=lab`，兼容旧链接。
+**实现要点**：
+- 皮肤 CSS 内联主文件，`body[data-skin="xxx"]` 覆盖 12 个设计变量 + 各皮肤签名样式
+- `<body class="has-skinbar">` 直接写在 HTML 里，不依赖 JS 加类（避免闪动）
+- 顶部条占 58px，**侧栏 sticky `top` 必须同步改成 82px**（58 + 24），否则吸顶后会被条压住；窄屏条高 44px、侧栏回落 `static`
+- `apply(name)` 是**唯一的状态出口**（改 body 属性 + 同步按钮高亮）。以后要做定时轮换，只需 `setInterval(() => apply(next), N)`，不必改渲染逻辑
+
+**演进记录（别走回头路）**：
+1. `061c318` 用 `lab/overlay.html` + `build.py` 构建合成独立页面 —— 技术上无副本，但**多一个地址、多一层构建**，已废弃
+2. `d044ceb` 改为内联皮肤 + `?skin=` 参数 —— 地址唯一了，但切换器默认隐藏，用户仍要记参数
+3. `4dd4e29` 切换器改为常驻 —— 用户不需要知道任何参数，打开就有
 
 > 判断标准：**用户能打开的东西才算交付；需要解释架构才用得起来的设计，就是坏设计。**
 
@@ -305,6 +310,7 @@ codex 脚本注入阶段的产物，共 **12 个**，已于 `e8e7364` 全部移�
 | `todos_collapsed` | 已折叠日期键数组 |
 | `quick_phrases_v1` | 快捷语字符串数组 |
 | `quick_collapsed` | 快捷语面板折叠状态，`'1'` / `'0'` |
+| `todo_skin` | 风格皮肤名，`violet` / `cartoon` / `cyber` / `robot` / `anime` / `ink` |
 | `todo_theme` | **已废弃**：旧版多主题留下的死键，代码已不再读写，忽略即可 |
 
 修改 `todos_v3` 的数据结构前务必做向后兼容（旧数据读入时补默认字段），否则用户已有的任务会丢。
@@ -320,7 +326,9 @@ codex 脚本注入阶段的产物，共 **12 个**，已于 `e8e7364` 全部移�
 | TODO-5 | **模块化评估**：目前仍是单文件 665 行（CSS 39% / JS 50% / HTML 9%）。拆成 `index.html` + `app.css` + `app.js` 是否值得？ | P3 | 2026-10-18 | 待决策（见下方判据，未执行） |
 | TODO-6 | **移除多主题**：只保留默认紫色，删掉 cyan/coral/rose/emerald 四套色与主题切换器 | P2 | 2026-10-18 | 已完成（`d385b4f`，净减 34 行，残留引用 0 处） |
 | TODO-7 | **风格探索（试验）**：卡通 / 赛博 / 机器人 / 二次元 / 水墨，深色底。产物放工作区，不进仓库、不部署 | P3 | 2026-10-18 | 已完成，后升级为上线演示页（见 TODO-10） |
-| TODO-10 | **风格预览可访问** | P2 | 2026-10-18 | 已完成（`d044ceb`，合并进单文件 + `?skin=` 参数；旧的 `061c318` 构建合成方案已废弃） |
+| TODO-10 | **风格预览可访问** | P2 | 2026-10-18 | 已完成（`d044ceb` 参数式；`4dd4e29` 改为常驻，见 TODO-11） |
+| TODO-11 | **切换器常驻 + 记忆选择**：顶部一直显示，默认紫，选过就记住 | P2 | 2026-10-18 | 已完成（`4dd4e29`，`localStorage.todo_skin`） |
+| TODO-12 | **可选：定时自动轮换风格**（主人提过"说不定以后要"）。`apply()` 已是唯一状态出口，接入成本约 10 行 | P4 | 2026-10-18 | 未开始（等主人明确要求） |
 | TODO-8 | **Bug：侧栏吸顶不一致**——`calendar-card` 单独 sticky，快捷语面板没有，滚动时二者分离 | P1 | 2026-10-18 | 已完成（`9854888`，改为侧栏整体 sticky） |
 | TODO-9 | **构建时间戳**：页脚显示部署 SHA + 时间，用于区分"看到的是哪个版本"（CI 注入，无需手改） | P3 | 2026-10-18 | 已完成（`9854888`，`deploy.yml` 注入） |
 
