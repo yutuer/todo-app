@@ -29,8 +29,6 @@ jobs:
           sed -i "s|id=\"build-stamp\">dev<|id=\"build-stamp\">${STAMP}<|" index.html
           echo "build stamp -> ${STAMP}"
           grep -o 'id="build-stamp">[^<]*' index.html || true
-      - name: Build style showcase
-        run: python3 lab/build.py
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
