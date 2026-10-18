@@ -67,11 +67,17 @@
     .filter-btn:hover { border-color: var(--text-muted); }
     .filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
     .date-section { margin-bottom: 14px; }
-    .date-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-    .date-label svg { width: 12px; height: 12px; color: var(--accent); }
+    .date-section.collapsed .todo-list { display: none; }
+    .date-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background 0.2s; }
+    .date-label:hover { background: var(--bg-card); }
+    .date-label svg { width: 12px; height: 12px; color: var(--accent); transition: transform 0.2s; }
+    .date-section.collapsed .date-label svg { transform: rotate(-90deg); }
     .date-label .tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--accent-light); color: var(--accent); font-weight: 500; }
     .date-label .tag.yesterday { background: rgba(251,146,60,0.15); color: #fb923c; }
     .date-label .count { font-size: 10px; color: var(--text-muted); }
+    .date-label .chevron { margin-left: auto; font-size: 10px; color: var(--text-muted); transition: transform 0.2s; }
+    .date-section.collapsed .date-label .chevron { transform: rotate(-90deg); }
+    .date-label .collapsed-hint { font-size: 10px; color: var(--text-muted); margin-left: 8px; }
     .todo-list { display: flex; flex-direction: column; gap: 6px; }
     .todo-item { background: var(--bg-card); border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); }
     .todo-item.continued { border-left: 3px solid #fb923c; }
@@ -150,6 +156,7 @@
   <script>
 const STORAGE_KEY = 'todos_v3';
 const THEME_KEY = 'todo_theme';
+const COLLAPSED_KEY = 'todos_collapsed';
 
 function formatDateKey(date) {
   const y = date.getFullYear();
@@ -162,6 +169,11 @@ function getYesterdayKey() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
   return formatDateKey(d);
+}
+
+function isPastDate(dateStr) {
+  const today = formatDateKey(new Date());
+  return dateStr < today;
 }
 
 function formatDisplayDate(dateStr) {
@@ -192,6 +204,7 @@ let todos = [];
 let currentFilter = 'all';
 let currentMonth = new Date();
 let selectedDate = formatDateKey(new Date());
+let collapsedDates = new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) || '[]'));
 
 const todoInput = document.getElementById('todo-input');
 const todoDate = document.getElementById('todo-date');
@@ -216,6 +229,8 @@ function loadTodos() {
 }
 
 function saveTodos() { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); }
+
+function saveCollapsed() { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedDates])); }
 
 function loadTheme() {
   const t = localStorage.getItem(THEME_KEY);
@@ -249,11 +264,9 @@ function changeDate(id, currentDate) {
   input.type = 'date';
   input.value = currentDate;
   input.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;padding:10px;border:1px solid var(--accent);border-radius:8px;background:var(--bg-card);color:var(--text-primary);';
-  
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999;';
   overlay.onclick = () => { document.body.removeChild(overlay); document.body.removeChild(input); };
-  
   input.onchange = () => {
     if (input.value !== currentDate) {
       const t = todos.find(x => x.id === id);
@@ -262,7 +275,6 @@ function changeDate(id, currentDate) {
     document.body.removeChild(overlay);
     document.body.removeChild(input);
   };
-  
   document.body.appendChild(overlay);
   document.body.appendChild(input);
   input.showPicker ? input.showPicker() : input.focus();
@@ -286,6 +298,17 @@ function updateStats() {
   totalCount.textContent = todos.length;
   completedCount.textContent = todos.filter(x => x.completed).length;
   remainingCount.textContent = todos.length - todos.filter(x => x.completed).length;
+}
+
+function toggleCollapse(dateKey) {
+  if (collapsedDates.has(dateKey)) {
+    collapsedDates.delete(dateKey);
+  } else {
+    collapsedDates.add(dateKey);
+  }
+  saveCollapsed();
+  const section = document.querySelector('.date-section[data-date="' + dateKey + '"]');
+  if (section) section.classList.toggle('collapsed', collapsedDates.has(dateKey));
 }
 
 function getGroupedTodos() {
@@ -350,16 +373,24 @@ function renderCalendar() {
 function render() {
   const grouped = getGroupedTodos();
   const today = formatDateKey(new Date());
-  if (Object.keys(grouped).length === 0) {
+  const dateKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  
+  if (dateKeys.length === 0) {
     todoList.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><p>暂无任务</p></div>';
   } else {
     let html = '';
-    Object.keys(grouped).sort((a,b) => b.localeCompare(a)).forEach(dateKey => {
+    dateKeys.forEach(dateKey => {
       const dayTodos = grouped[dateKey];
       const continued = dayTodos.filter(t => t.isContinued).length;
       const tag = getDateTag(dateKey);
       const subLabel = dateKey === today && continued > 0 ? ' <span style="color:#fb923c;font-size:10px">(含昨日未完成 ' + continued + ' 项)</span>' : '';
-      html += '<div class="date-section"><div class="date-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' + formatDisplayDate(dateKey) + ' ' + tag + ' <span class="count">(' + dayTodos.length + ')' + subLabel + '</span></div><div class="todo-list">' + dayTodos.map(t => {
+      const isPast = isPastDate(dateKey);
+      const isCollapsed = collapsedDates.has(dateKey);
+      const hint = isPast && isCollapsed ? '<span class="collapsed-hint">(' + dayTodos.length + ' 项)</span>' : '';
+      
+      html += '<div class="date-section' + (isCollapsed ? ' collapsed' : '') + '" data-date="' + dateKey + '">';
+      html += '<div class="date-label" onclick="toggleCollapse(\'' + dateKey + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>' + formatDisplayDate(dateKey) + ' ' + tag + ' <span class="count">(' + dayTodos.length + ')' + subLabel + hint + '</span><span class="chevron">▼</span></div>';
+      html += '<div class="todo-list">' + dayTodos.map(t => {
         const cls = 'todo-item' + (t.completed ? ' completed' : '') + (t.isContinued ? ' continued' : '');
         const timeHtml = t.isContinued ? '<div class="todo-time">' + formatTime(t.createdAt) + '</div><div class="todo-source">来自昨天</div>' : '<div class="todo-time">' + formatTime(t.createdAt) + '</div>';
         return '<div class="' + cls + '" data-id="' + t.id + '"><div class="checkbox' + (t.completed ? ' checked' : '') + '" onclick="toggleTodo(\'' + t.id + '\')"></div><div class="todo-content"><div class="todo-date" onclick="changeDate(\'' + t.id + '\',\'' + t.date + '\')">' + formatDisplayDate(t.date) + '</div><div class="todo-text" ondblclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')">' + escapeHtml(t.text) + '</div>' + timeHtml + '</div><div class="todo-actions"><button class="btn-edit" onclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-delete" onclick="deleteTodo(\'' + t.id + '\')" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>';
