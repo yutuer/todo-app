@@ -161,6 +161,30 @@
 **排掉一个假故障**：首次截图时列表为空、统计为 0，但 `localStorage` 里数据齐全。根因是 `goto` 到「完全相同 URL（含相同 hash）」触发的是**同文档 hash 跳转，页面并未真正重载**，内存里的 `todos` 仍是初始空数组。加查询参数强制重载后恢复正常。
 → 教训：**hash 导航 ≠ 页面重载**；截图或验收前必须确认"数据真的渲染了"，而不是"数据存在"。这与 §4.3 的 md5/EOL 是同一类误判：**中间态相同，不等于终态相同。**
 
+### 4.6 TODO-8 / TODO-9 执行记录（`9854888`）
+
+**TODO-8　侧栏吸顶**：根因是**吸顶做在了错误的层级**——`.calendar-card` 单独 `position: sticky`，而快捷语面板是它的**兄弟节点**，没有 sticky，所以滚动时日历钉住、面板走掉。
+
+修法：改为 **`.sidebar` 整体 sticky**（`position: sticky; top: 24px; align-self: flex-start`），同时取消 `.calendar-card` 自身的 sticky（嵌套 sticky 会互相顶掉）。
+
+两个容易漏的细节：
+- `align-self: flex-start` 必须写。`.layout` 是 flex 容器，默认 `stretch` 会把侧栏拉满整个高度，sticky 就无从生效。
+- 侧栏比视口高时要给 `max-height: calc(100vh - 48px); overflow-y: auto`，否则「+ 添加」会被钉在视口外、永远点不到（实测 520px 视口下靠内部滚动可达）。
+- 窄屏（≤768px）重置为 `position: static`，否则整块侧栏吸顶会挡住内容。
+
+验收（**线上生产环境**实测，24 条任务）：
+
+| 滚动位置 | 侧栏 top | 快捷语 top |
+|---|---|---|
+| 0 | 24 | 292 |
+| 600 | 24 | 292 |
+| 1400 | 24 | 292 |
+
+滚到页面最底部时两者仍在原位。
+
+**TODO-9　构建戳**：页脚 `#build-stamp` 本地占位 `dev`；`deploy.yml` 在 checkout 后 `sed` 注入 `SHA7 - MM-DD HH:MM UTC`。CI 实际输出：`9854888 - 10-18 08:48 UTC`。
+收益：以后"我看到的到底是哪个版本"一眼可判，且顺带成为 Step 4 的部署验收手段——**戳里的 SHA 必须等于 HEAD 前 7 位**。
+
 ## 5. 后续开发流程（SOP）
 
 ### Step 0　读档
@@ -199,7 +223,18 @@ python -m http.server 8080   # 打开 http://localhost:8080/
 `feat: xxx` / `fix: xxx`，一次提交只做一件事，便于 `git revert` 精准回滚。**不要 `git add .`**（会带入第 7 节的垃圾文件）。
 
 ### Step 4　发布与验证
+
 `git push origin main` → 等待 Actions 完成（约 1 分钟）→ 访问 https://yutuer.github.io/todo-app/ 确认根路径正常、功能可用。
+
+**判断"有没有真的更新"，看页脚构建戳**：格式 `SHA7 - MM-DD HH:MM UTC`，由 `deploy.yml` 在 checkout 后注入。戳里的 SHA 与 `git rev-parse --short HEAD` 一致，才说明线上就是本次版本。
+
+**看不到新版本时的排查顺序（三步，别跳）**：
+
+1. `git rev-parse --short HEAD` 与 `git rev-parse --short origin/main` —— 先确认**推没推**
+2. `curl -s https://yutuer.github.io/todo-app/ | grep build-stamp` —— 看**线上实际内容**（`curl` 不受浏览器缓存影响）
+3. 看响应头 `Cache-Control` / `Last-Modified` —— GitHub Pages 的 HTML 是 `max-age=600`（10 分钟），走 Fastly CDN；**F5 不会绕过缓存**，要 Ctrl+F5，或直接开 `<url>/?v=<时间戳>`
+
+> 教训（2026-10-18）：主人反馈"Ctrl+F5 后仍是旧版"，臣妾第一步先怀疑"是不是没推送"，实际推送与部署都正常。**要按上面三步查证据再下结论，不要顺着"是不是你没推"的方向走**——缓存、本地预览面板、错误 URL，都比"没推送"更常见。
 
 ### Step 5　出问题先回滚
 `git revert <提交>` 优先于 `git reset --hard`（保留历史）。除非要彻底丢弃一批实验性提交，否则不使用 reset。
@@ -262,6 +297,8 @@ codex 脚本注入阶段的产物，共 **12 个**，已于 `e8e7364` 全部移�
 | TODO-5 | **模块化评估**：目前仍是单文件 665 行（CSS 39% / JS 50% / HTML 9%）。拆成 `index.html` + `app.css` + `app.js` 是否值得？ | P3 | 2026-10-18 | 待决策（见下方判据，未执行） |
 | TODO-6 | **移除多主题**：只保留默认紫色，删掉 cyan/coral/rose/emerald 四套色与主题切换器 | P2 | 2026-10-18 | 已完成（`d385b4f`，净减 34 行，残留引用 0 处） |
 | TODO-7 | **风格探索（试验）**：卡通 / 赛博 / 机器人 / 二次元 / 水墨，深色底。**产物放工作区，不进仓库、不部署** | P3 | 2026-10-18 | 已完成（样机 `_style-lab/style-showcase.html`，5 套皮肤 + 切换器，未进仓库） |
+| TODO-8 | **Bug：侧栏吸顶不一致**——`calendar-card` 单独 sticky，快捷语面板没有，滚动时二者分离 | P1 | 2026-10-18 | 已完成（`9854888`，改为侧栏整体 sticky） |
+| TODO-9 | **构建时间戳**：页脚显示部署 SHA + 时间，用于区分"看到的是哪个版本"（CI 注入，无需手改） | P3 | 2026-10-18 | 已完成（`9854888`，`deploy.yml` 注入） |
 
 **TODO-7 的存放约定**：风格样机属于设计探索，不是产品代码。放在工作区 `_style-lab/` 下，用 `cp` 复制主文件后叠加皮肤样式，**不提交、不推送、不被 Pages 发布**——避免仓库里出现第二份 app 副本（正是 §6 禁止事项第 2 条要防的）。
 
