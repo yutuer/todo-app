@@ -15,7 +15,7 @@
 ## 1. 技术形态
 
 - **单文件**：`index.html` 一个文件装下 HTML + CSS + JS，无构建、无打包、无 npm 依赖。
-- **例外**：`lab/` 目录是风格演示用的皮肤层，只在构建时合成为 `style-showcase.html`，**不参与主站运行**（见 §4.7）。
+- **例外**：5 套风格皮肤的 CSS 内联在本文件里，但**默认完全不生效**——只有 URL 带 `?skin=xxx` 时才启用（见 §4.7）。
 - **存储**：`localStorage`，键见文末第 8 节。
 - **部署**：`.github/workflows/deploy.yml`，向 `main` 推送即自动发布到 GitHub Pages（`path: .` 全量上传，Actions 只 checkout 被 git 跟踪的文件，因此未跟踪的垃圾文件不会被发布）。
 - **样式**：暗色主题，CSS 变量驱动，**单一强调色紫色 `#8b5cf6`**（2026-10-18 已移除 cyan/coral/rose/emerald 四套切换色）。
@@ -186,28 +186,27 @@
 **TODO-9　构建戳**：页脚 `#build-stamp` 本地占位 `dev`；`deploy.yml` 在 checkout 后 `sed` 注入 `SHA7 - MM-DD HH:MM UTC`。CI 实际输出：`9854888 - 10-18 08:48 UTC`。
 收益：以后"我看到的到底是哪个版本"一眼可判，且顺带成为 Step 4 的部署验收手段——**戳里的 SHA 必须等于 HEAD 前 7 位**。
 
-### 4.7 风格演示页上线（`061c318`）
+### 4.7 风格皮肤（单文件 + URL 参数，`d044ceb`）
 
-**线上地址**：https://yutuer.github.io/todo-app/style-showcase.html
-
-**为什么不直接"复制一份上传"**：仓库里一旦出现 `index.html` 的副本，它必然与主站漂移——这正是 §6 第 2 条要防的（`todo_backup/todo_new/todo_github` 三份残骸就是证据）。所以采用**构建时合成**：
+**一句话**：皮肤 CSS 内联在 `index.html` 里，默认不生效；加 `?skin=` 才启用，**永远只有一个地址**。
 
 ```
-index.html（唯一真相源）
-   +  lab/overlay.html（只含皮肤 CSS + 切换器，11.6KB，零应用代码）
-   ↓  lab/build.py
-style-showcase.html（构建产物，已 gitignore，不入库）
+https://yutuer.github.io/todo-app/               → 主站，紫色单主题，无切换器
+https://yutuer.github.io/todo-app/?skin=lab      → 预览模式：同上 + 顶部切换器
+https://yutuer.github.io/todo-app/?skin=cyber    → 赛博皮肤（切换器自动出现，可直接点别的）
 ```
 
-`deploy.yml` 在「注入构建戳」**之后**执行 `python3 lab/build.py`，所以演示页自带构建戳，也自动继承主站的一切更新（吸顶、快捷语、一键清空…）。
+五套皮肤：`cartoon` 卡通风 / `cyber` 赛博朋克 / `robot` 机器人 / `anime` 二次元 / `ink` 水墨。
 
-| 维度 | 说明 |
-|---|---|
-| 收益 | 主站改了演示页自动同步；仓库不增加 app 副本；体积零增长 |
-| 代价 | 演示页不受 git 跟踪，本地要看需先跑 `python3 lab/build.py` |
-| 防护 | `build.py --check` 校验 overlay 关键结构（`.skin-bar`、`data-skin="cyber"`、`body[data-skin="ink"]`），缺失即非零退出，**CI 会拦下**，不会静默产出没皮肤的页面 |
+**实现要点**：
+- CSS 全部内联在主文件，`body[data-skin="xxx"]` 覆盖 12 个设计变量 + 各皮肤签名样式
+- 切换器 DOM 常驻但 `display: none`；JS 只有一句 `URLSearchParams.get('skin')`，取不到就直接 `return`，**主站一个字节的渲染差异都没有**
+- `?skin=lab` 视为「默认紫 + 显示切换器」
 
-**五套皮肤**（顶部切换器，也支持 `#cartoon` / `#cyber` / `#robot` / `#anime` / `#ink` 直达）：卡通风、赛博朋克、机器人、二次元、水墨。皮肤只覆盖 CSS 变量与签名样式，**零业务逻辑改动**，切换后任务、快捷语、筛选状态都不丢。
+**演进记录（重要，别走回头路）**：曾试过 `lab/overlay.html` + `lab/build.py` 构建时合成 `style-showcase.html`（`061c318`），技术上不产生副本，但代价是**多一个地址、多一层构建**，主人要记两个 URL——与「单文件零依赖」的初衷相悖，已废弃。
+`style-showcase.html` 保留为跳转页 → `./?skin=lab`，兼容旧链接。
+
+> 判断标准：**用户能打开的东西才算交付；需要解释架构才用得起来的设计，就是坏设计。**
 
 ## 5. 后续开发流程（SOP）
 
@@ -276,7 +275,7 @@ python -m http.server 8080   # 打开 http://localhost:8080/
 ## 6. 禁止事项
 
 1. **禁止**用外部 `.py` / `.js` 脚本对 `index.html` 做 `replace` 注入（第 3.1 节已证伪此路线）。
-2. **禁止**复制出 `index.html` 的副本并行维护（`todo_backup.html`、`todo_new.html`、`todo_github.html` 就是这条路留下的残骸，三份 27~32K 的近似副本，极易改错文件）。需要"同一份应用 + 不同外观"时，用 `lab/build.py` 在**构建时合成**（见 §4.7），不要复制文件。
+2. **禁止**复制出 `index.html` 的副本并行维护（`todo_backup.html`、`todo_new.html`、`todo_github.html` 就是这条路留下的残骸，三份 27~32K 的近似副本，极易改错文件）。需要"同一份应用 + 不同外观"时，用 **`?skin=` 参数 + 内联皮肤**（见 §4.7），不要复制文件，也不要另开页面。
 3. **禁止**动态 DOM 用 `innerHTML` 字符串拼接 + 内联 `onclick`。
 4. **禁止** `git add .`。
 5. **禁止**在未跑完 Step 2 三条校验的情况下提交。
@@ -321,11 +320,11 @@ codex 脚本注入阶段的产物，共 **12 个**，已于 `e8e7364` 全部移�
 | TODO-5 | **模块化评估**：目前仍是单文件 665 行（CSS 39% / JS 50% / HTML 9%）。拆成 `index.html` + `app.css` + `app.js` 是否值得？ | P3 | 2026-10-18 | 待决策（见下方判据，未执行） |
 | TODO-6 | **移除多主题**：只保留默认紫色，删掉 cyan/coral/rose/emerald 四套色与主题切换器 | P2 | 2026-10-18 | 已完成（`d385b4f`，净减 34 行，残留引用 0 处） |
 | TODO-7 | **风格探索（试验）**：卡通 / 赛博 / 机器人 / 二次元 / 水墨，深色底。产物放工作区，不进仓库、不部署 | P3 | 2026-10-18 | 已完成，后升级为上线演示页（见 TODO-10） |
-| TODO-10 | **风格演示页上线**：`/style-showcase.html` 可公开访问，**构建时合成**（不存副本） | P2 | 2026-10-18 | 已完成（`061c318`，`lab/build.py` + CI 合成） |
+| TODO-10 | **风格预览可访问** | P2 | 2026-10-18 | 已完成（`d044ceb`，合并进单文件 + `?skin=` 参数；旧的 `061c318` 构建合成方案已废弃） |
 | TODO-8 | **Bug：侧栏吸顶不一致**——`calendar-card` 单独 sticky，快捷语面板没有，滚动时二者分离 | P1 | 2026-10-18 | 已完成（`9854888`，改为侧栏整体 sticky） |
 | TODO-9 | **构建时间戳**：页脚显示部署 SHA + 时间，用于区分"看到的是哪个版本"（CI 注入，无需手改） | P3 | 2026-10-18 | 已完成（`9854888`，`deploy.yml` 注入） |
 
-**TODO-7 的存放约定**：风格样机属于设计探索，不是产品代码。放在工作区 `_style-lab/` 下，用 `cp` 复制主文件后叠加皮肤样式，**不提交、不推送、不被 Pages 发布**——避免仓库里出现第二份 app 副本（正是 §6 禁止事项第 2 条要防的）。
+**TODO-7 的存放约定（已被 TODO-10 取代）**：最初把样机放工作区、不进仓库；后因主人需要线上直接可见，改为「皮肤内联 + `?skin=` 参数」，见 §4.7。工作区 `_style-lab/` 可作历史存档，与仓库无关。
 
 **TODO-5 的判据**（避免"为了拆而拆"）：
 
