@@ -87,6 +87,7 @@
 | 2026-10-18 | 补内联 SVG favicon，消除控制台 404 | `2d33ab3` |
 | 2026-10-18 | 归档 12 个 codex 脚本产物并加 `.gitignore` | `e8e7364` |
 | 2026-10-19 | **修顺延 Bug**：范围由「仅昨天」扩为「今天之前所有未完成」，见 §4.8 | `0403b40` |
+| 2026-10-19 | **加 localStorage 兼容层**：旧数据缺字段不再产生 `undefined` 分组，见 §4.9 | 待提交 |
 
 **回滚方式**：`git reset --hard takeover-20261018` 可回到 codex 交付的干净状态（该状态线上根路径是 404，需重新打补丁）。
 
@@ -244,6 +245,28 @@ if (t.date < today && !t.completed) { carried.push({...t, isContinued: true, ori
 
 **教训**：臣妾第一轮排查只抓了「昨天」一个日期分组，看到顺延生效就断言"功能无 bug"——**实际漏掉了 10/17 的任务**。去查 bug 必须构造**跨多天 / 已完成与未完成 / 各筛选态**的边界数据，碰巧命中一条就收工比不查更糟，因为它会让主人以为已经修好。
 
+### 4.9 localStorage 兼容层（`normalizeTodo`）
+
+**问题**：第 8 节早就写明「修改 `todos_v3` 的数据结构前务必做向后兼容（旧数据读入时补默认字段），否则用户已有的任务会丢」，但 `loadTodos()` 一直只是裸 `JSON.parse`，**没有任何补全**。后果：
+
+1. 旧记录缺 `date` → `t.date` 为 `undefined`，`getGroupedTodos()` 里 `t.date < today` 得 `false`，于是归组键变成字面量 `"undefined"`，页面上多出一个日期为 `NaN月NaN日` 的分组。
+2. 顶层不是数组 / JSON 损坏 → `todos` 变成对象或字符串，后续 `todos.filter` 直接抛错，**整个应用不可用**。
+3. **相邻同源隐患**：`collapsedDates` 那行原本是 `new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) || '[]'))`，**存储值一旦损坏，这行直接抛异常中断整个 `<script>`**——后面所有事件绑定与渲染都不执行，**全站白屏**。
+
+**修法**：
+- 新增 `normalizeTodo(raw)`：逐字段补默认值——`id` 缺失则 `generateId()`；`text` 非字符串则转字符串、为空则丢弃该条；`date` 非 `YYYY-MM-DD` 则回落今天；`createdAt` 缺失则补 `Date.now()`；`completed` 非 `true` 一律视为 `false`；`completedAt` 仅在已完成时保留。
+- `loadTodos()` 改为：解析失败 / 顶层非数组 → 空数组；逐条 `normalizeTodo` 后 `filter(Boolean)` 丢弃无法修复的脏条目。
+- **仅当真的发生修正时才回写** `localStorage`（`JSON.stringify` 比对前后），正常数据**不被无谓改写**。注意回写必须发生在 `todos` 赋值**之后**，否则 `saveTodos()` 写的是旧值。
+- 新增 `loadCollapsed()`：解析失败 / 顶层非数组 / 含非字符串元素 → 一律回落空集合，**不再让单行异常拖垮整站**。
+
+**保留原则**：只丢弃「彻底无法修复」的条目（`null`、数字、字符串、数组、空 text）。`text` 与 `date` 齐全的旧记录**一律保留**，只是补齐缺失字段——**用户已有任务不丢**。
+
+**验证方式**：
+1. **Node 单测**：用正则从 `index.html` 抽出 `normalizeTodo` / `loadTodos` / `loadCollapsed` **真实源码**，注入可控的 `localStorage` 与 `Date` 桩件跑断言（沿用 §4.8 的方法，测真代码而非复刻品）。6 场景 25 断言全 PASS，覆盖：缺 `date` / `date` 为 `null` / 非法格式 / 缺 `createdAt` / `completed` 非布尔 / 缺 `id` / 混入 `null`·字符串·数字·数组·空白 text / JSON 损坏 / 顶层非数组 / 折叠态损坏 / 幂等不写库。
+2. **浏览器实点**：临时种子页（`_v.html`，已 gitignore）注入 13 条混合脏数据 + 损坏的 `todos_collapsed`，跳转后实测——**页面未白屏**、无 `undefined` 分组、无 `NaN` 日期、统计 7/1/6 与预期一致、控制台 **0 报错**、刷新后数据一致。主流程回归：新增 → 勾选 → 双击改名 → 删除 → 刷新持久化 → 折叠状态保持 → 切换皮肤不串色，全部通过。
+
+**教训**：README 写了的约定不等于代码做到了。§8 那句「务必做向后兼容」挂了几个月没人管——**文档与实现要定期对账**，否则文档只是安慰剂。
+
 ## 5. 后续开发流程（SOP）
 
 ### Step 0　读档
@@ -348,6 +371,8 @@ codex 脚本注入阶段的产物，共 **12 个**，已于 `e8e7364` 全部移�
 | `todo_theme` | **已废弃**：旧版多主题留下的死键，代码已不再读写，忽略即可 |
 
 修改 `todos_v3` 的数据结构前务必做向后兼容（旧数据读入时补默认字段），否则用户已有的任务会丢。
+
+**兼容层已落地（2026-10-19，见 §4.9）**：`loadTodos()` 读入时经 `normalizeTodo()` 补齐 `id` / `text` / `date` / `createdAt` / `completed` / `completedAt`，缺 `date` 回落今天，脏条目丢弃但**用户任务不丢**；`todos_collapsed` 损坏时回落空集合，不再白屏。**今后再改 `todos_v3` 结构，仍需同步扩展 `normalizeTodo()`。**
 
 ## 9. 待办事项（TODO）
 

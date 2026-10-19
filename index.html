@@ -420,11 +420,22 @@ function formatFullTime(ts) {
 
 function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
 
+function loadCollapsed() {
+  // 存储值损坏时不能让整个脚本挂掉：解析失败一律回落到空集合
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
 let todos = [];
 let currentFilter = 'all';
 let currentMonth = new Date();
 let selectedDate = formatDateKey(new Date());
-let collapsedDates = new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) || '[]'));
+let collapsedDates = loadCollapsed();
 
 const todoInput = document.getElementById('todo-input');
 const todoDate = document.getElementById('todo-date');
@@ -442,9 +453,38 @@ const prevMonthBtn = document.getElementById('prev-month');
 const nextMonthBtn = document.getElementById('next-month');
 const todayBtn = document.getElementById('today-btn');
 
+// 旧数据兼容层：读入时补齐缺失字段，避免旧记录缺 date 时归组键变成 "undefined"。
+// 规则：id/text/date/createdAt 缺失或类型不对时补默认值；无法修复的条目直接丢弃，
+// 但保留 text 与 date 齐全的记录，确保用户已有任务不丢。
+function normalizeTodo(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+
+  const text = typeof raw.text === 'string' ? raw.text : (raw.text == null ? '' : String(raw.text));
+  if (!text.trim()) return null;
+
+  // date 必须是 YYYY-MM-DD；缺失或格式非法时回落到今天
+  let date = typeof raw.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.date) ? raw.date : formatDateKey(new Date());
+
+  const id = (typeof raw.id === 'string' && raw.id) ? raw.id : generateId();
+  const createdAt = (typeof raw.createdAt === 'number' && isFinite(raw.createdAt)) ? raw.createdAt : Date.now();
+  const completed = raw.completed === true;
+  // completedAt 仅在已完成时有意义；缺失则不补（render 依赖它可选）
+  const completedAt = (completed && typeof raw.completedAt === 'number' && isFinite(raw.completedAt)) ? raw.completedAt : null;
+
+  return { id: id, text: text, completed: completed, createdAt: createdAt, completedAt: completedAt, date: date };
+}
+
 function loadTodos() {
   const s = localStorage.getItem(STORAGE_KEY);
-  if (s) { try { todos = JSON.parse(s); } catch(e) { todos = []; } }
+  if (!s) { todos = []; return; }
+  let parsed;
+  try { parsed = JSON.parse(s); } catch (e) { todos = []; return; }
+  if (!Array.isArray(parsed)) { todos = []; return; }
+  const normalized = parsed.map(normalizeTodo).filter(Boolean);
+  todos = normalized;
+  // 仅当确实发生过修正时才回写，避免每次打开都无谓写库
+  // 注意：必须先赋值再回写，否则 saveTodos() 写的是旧值
+  if (JSON.stringify(normalized) !== JSON.stringify(parsed)) saveTodos();
 }
 
 function saveTodos() { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); }
