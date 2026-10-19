@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Stamp build info
         run: |
           STAMP="${GITHUB_SHA:0:7} - $(date -u '+%m-%d %H:%M') UTC"
@@ -30,11 +30,11 @@ jobs:
           echo "build stamp -> ${STAMP}"
           grep -o 'id="build-stamp">[^<]*' index.html || true
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v6
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: .
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
