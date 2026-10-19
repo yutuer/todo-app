@@ -28,7 +28,13 @@ jobs:
           STAMP="${GITHUB_SHA:0:7} - $(date -u '+%m-%d %H:%M') UTC"
           sed -i "s|id=\"build-stamp\">dev<|id=\"build-stamp\">${STAMP}<|" index.html
           echo "build stamp -> ${STAMP}"
-          grep -o 'id="build-stamp">[^<]*' index.html || true
+          # 注入失败必须让 CI 失败：校验"实际戳 == 期望戳"，而非"dev 是否还在"。
+          # 后者会在锚点被改名时误判为通过（sed 注到新名字，旧串自然找不到）。
+          if ! grep -qF "id=\"build-stamp\">${STAMP}<" index.html; then
+            echo "::error::构建戳注入失败，index.html 中的锚点可能已变更"
+            exit 1
+          fi
+          grep -o 'id="build-stamp">[^<]*' index.html
       - name: Setup Pages
         uses: actions/configure-pages@v6
       - name: Upload artifact
