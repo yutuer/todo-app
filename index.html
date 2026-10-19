@@ -456,6 +456,8 @@ const todayBtn = document.getElementById('today-btn');
 // 旧数据兼容层：读入时补齐缺失字段，避免旧记录缺 date 时归组键变成 "undefined"。
 // 规则：id/text/date/createdAt 缺失或类型不对时补默认值；无法修复的条目直接丢弃，
 // 但保留 text 与 date 齐全的记录，确保用户已有任务不丢。
+const TODO_FIELDS = ['id', 'text', 'completed', 'createdAt', 'completedAt', 'date'];
+
 function normalizeTodo(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
 
@@ -463,7 +465,7 @@ function normalizeTodo(raw) {
   if (!text.trim()) return null;
 
   // date 必须是 YYYY-MM-DD；缺失或格式非法时回落到今天
-  let date = typeof raw.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.date) ? raw.date : formatDateKey(new Date());
+  const date = typeof raw.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.date) ? raw.date : formatDateKey(new Date());
 
   const id = (typeof raw.id === 'string' && raw.id) ? raw.id : generateId();
   const createdAt = (typeof raw.createdAt === 'number' && isFinite(raw.createdAt)) ? raw.createdAt : Date.now();
@@ -471,7 +473,27 @@ function normalizeTodo(raw) {
   // completedAt 仅在已完成时有意义；缺失则不补（render 依赖它可选）
   const completedAt = (completed && typeof raw.completedAt === 'number' && isFinite(raw.completedAt)) ? raw.completedAt : null;
 
-  return { id: id, text: text, completed: completed, createdAt: createdAt, completedAt: completedAt, date: date };
+  const todo = { id: id, text: text, completed: completed, createdAt: createdAt, completedAt: completedAt, date: date };
+  // 保留未知字段（未来版本新增的、或用户自带的），回写时不能把它们抹掉
+  Object.keys(raw).forEach(function (k) {
+    if (TODO_FIELDS.indexOf(k) < 0) todo[k] = raw[k];
+  });
+  return todo;
+}
+
+// 判断一条记录是否与规范化结果等价。逐字段比较而非整串 JSON.stringify：
+// 键顺序不同不算"有差异"，且 completedAt 的「缺失」与「null」视为等价
+// —— addTodo 写入的记录本就没有 completedAt 键，若按键数比较会导致每次打开都回写。
+function sameTodo(a, b) {
+  if (!a || !b) return a === b;
+  const keys = Object.keys(a).concat(Object.keys(b));
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i];
+    const va = a[k], vb = b[k];
+    if (k === 'completedAt' && (va === null || va === undefined) && (vb === null || vb === undefined)) continue;
+    if (va !== vb) return false;
+  }
+  return true;
 }
 
 function loadTodos() {
@@ -484,7 +506,9 @@ function loadTodos() {
   todos = normalized;
   // 仅当确实发生过修正时才回写，避免每次打开都无谓写库
   // 注意：必须先赋值再回写，否则 saveTodos() 写的是旧值
-  if (JSON.stringify(normalized) !== JSON.stringify(parsed)) saveTodos();
+  const changed = normalized.length !== parsed.length ||
+    normalized.some(function (t, i) { return !sameTodo(t, parsed[i]); });
+  if (changed) saveTodos();
 }
 
 function saveTodos() { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); }
