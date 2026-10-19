@@ -526,15 +526,23 @@ function getGroupedTodos() {
   let filtered = currentFilter === 'active' ? todos.filter(x => !x.completed) :
                  currentFilter === 'completed' ? todos.filter(x => x.completed) : todos;
   const today = formatDateKey(new Date());
-  const yesterday = getYesterdayKey();
   const grouped = {};
-  filtered.forEach(t => { if (!grouped[t.date]) grouped[t.date] = []; grouped[t.date].push({...t, isContinued: false}); });
-  if (currentFilter !== 'completed') {
-    const yesterdayUndone = todos.filter(x => x.date === yesterday && !x.completed && currentFilter === 'all');
-    if (yesterdayUndone.length > 0) {
-      if (!grouped[today]) grouped[today] = [];
-      yesterdayUndone.forEach(x => grouped[today].push({...x, isContinued: true}));
-    }
+  // 顺延口径：今天之前（任意日期，不只昨天）所有未完成任务，移入今天分组。
+  // currentFilter === 'completed' 时不参与；'active' 下未完成项本就全部保留，无需额外顺延。
+  if (currentFilter === 'completed') {
+    filtered.forEach(t => { if (!grouped[t.date]) grouped[t.date] = []; grouped[t.date].push({...t, isContinued: false}); });
+    return grouped;
+  }
+  const carried = [];
+  filtered.forEach(t => {
+    if (t.date < today && !t.completed) { carried.push({...t, isContinued: true, originDate: t.date}); return; }
+    if (!grouped[t.date]) grouped[t.date] = [];
+    grouped[t.date].push({...t, isContinued: false});
+  });
+  if (carried.length > 0) {
+    if (!grouped[today]) grouped[today] = [];
+    carried.sort((a, b) => a.date.localeCompare(b.date));
+    carried.forEach(x => grouped[today].push(x));
   }
   return grouped;
 }
@@ -594,7 +602,7 @@ function render() {
       const dayTodos = grouped[dateKey];
       const continued = dayTodos.filter(t => t.isContinued).length;
       const tag = getDateTag(dateKey);
-      const subLabel = dateKey === today && continued > 0 ? ' <span style="color:#fb923c;font-size:10px">(含昨日未完成 ' + continued + ' 项)</span>' : '';
+      const subLabel = dateKey === today && continued > 0 ? ' <span style="color:#fb923c;font-size:10px">(含往期未完成 ' + continued + ' 项)</span>' : '';
       const isPast = isPastDate(dateKey);
       const isCollapsed = collapsedDates.has(dateKey);
       const hint = isPast && isCollapsed ? '<span class="collapsed-hint">(' + dayTodos.length + ' 项)</span>' : '';
@@ -606,7 +614,7 @@ function render() {
         let timeHtml = '<div class="todo-time"><span>创建 ' + formatTime(t.createdAt) + '</span>';
         if (t.completed && t.completedAt) timeHtml += '<span class="completed-time">完成 ' + formatFullTime(t.completedAt) + '</span>';
         timeHtml += '</div>';
-        if (t.isContinued) timeHtml = '<div class="todo-time"><span class="todo-source">来自昨天</span></div>';
+        if (t.isContinued) timeHtml = '<div class="todo-time"><span class="todo-source">来自 ' + formatDisplayDate(t.originDate) + '</span><span>创建 ' + formatTime(t.createdAt) + '</span></div>';
         return '<div class="' + cls + '" data-id="' + t.id + '"><div class="checkbox' + (t.completed ? ' checked' : '') + '" onclick="toggleTodo(\'' + t.id + '\')"></div><div class="todo-content"><div class="todo-date" onclick="changeDate(\'' + t.id + '\',\'' + t.date + '\')">' + formatDisplayDate(t.date) + '</div><div class="todo-text" ondblclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')">' + escapeHtml(t.text) + '</div>' + timeHtml + '</div><div class="todo-actions"><button class="btn-edit" onclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-delete" onclick="deleteTodo(\'' + t.id + '\')" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>';
       }).join('') + '</div></div>';
     });
