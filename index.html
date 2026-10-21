@@ -293,6 +293,66 @@
     body[data-skin="ink"] .date-label { border-bottom: 1px dotted rgba(236,227,213,.16); border-radius: 0; }
     body[data-skin="ink"] .todo-item { border-width: 1px; border-left-width: 2px; }
     body[data-skin="ink"] .stat-value { text-shadow: none; }
+
+    /* ---- 标签系统 ----
+       全局标签表存 labels_v1（{id,name,color}），待办事项只存标签 id 数组。
+       因此改名/改色只改标签表一处，事项渲染时按 id 现查名称与颜色，自动跟随。 */
+    .label-card { background: var(--bg-card); border-radius: 14px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-top: 14px; overflow: hidden; }
+    .label-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; cursor: pointer; user-select: none; }
+    .label-head:hover { background: var(--bg-primary); }
+    .label-title { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.3px; }
+    .label-title svg { width: 13px; height: 13px; color: var(--accent); }
+    .label-count { font-size: 10px; font-weight: 400; color: var(--text-muted); }
+    .label-chevron { font-size: 10px; color: var(--text-muted); transition: transform 0.2s; }
+    .label-card.collapsed .label-chevron { transform: rotate(-90deg); }
+    .label-card.collapsed .label-body { display: none; }
+    .label-body { padding: 0 14px 12px; }
+    .label-list { display: flex; flex-direction: column; gap: 5px; }
+    .label-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; cursor: grab; transition: border-color 0.15s, opacity 0.15s; }
+    .label-row:hover { border-color: var(--accent); }
+    .label-row.dragging { opacity: 0.4; cursor: grabbing; }
+    .label-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(255,255,255,.14); }
+    .label-name { flex: 1; min-width: 0; font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .label-row:hover .label-name { color: var(--text-primary); }
+    .label-row-actions { display: inline-flex; gap: 3px; flex-shrink: 0; opacity: .45; transition: opacity .15s; }
+    .label-row:hover .label-row-actions { opacity: 1; }
+    .label-row-btn { width: 16px; height: 16px; padding: 0; border: none; border-radius: 50%; cursor: pointer; font-size: 9px; line-height: 1; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; }
+    .label-row-btn.edit { background: var(--accent); color: #fff; }
+    .label-row-btn.del { background: var(--danger); color: #fff; }
+    .label-add { padding: 6px 11px; background: transparent; border: 1px dashed var(--border); border-radius: 8px; font-size: 12px; color: var(--text-muted); cursor: pointer; font-family: inherit; transition: all 0.15s; width: 100%; }
+    .label-add:hover { border-color: var(--accent); color: var(--accent); }
+    .label-hint { font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+    .label-editor { display: none; margin-top: 10px; }
+    .label-editor.show { display: block; }
+    .label-editor input[type="text"] { width: 100%; padding: 7px 11px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; font-family: inherit; color: var(--text-primary); outline: none; }
+    .label-editor input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+    .label-palette { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; align-items: center; }
+    .label-sw { width: 18px; height: 18px; padding: 0; border: 2px solid transparent; border-radius: 50%; cursor: pointer; }
+    .label-sw.on { border-color: var(--text-primary); box-shadow: 0 0 0 1px var(--bg-primary); }
+    .label-custom { width: 22px; height: 22px; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: none; cursor: pointer; }
+    .label-error { display: none; font-size: 11px; color: var(--danger); margin-top: 6px; }
+    .label-error.show { display: block; }
+    .label-confirm { display: flex; align-items: center; gap: 6px; padding: 7px 9px; background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.35); border-radius: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.45; }
+    .label-confirm-text { flex: 1; min-width: 0; }
+    .label-confirm button { padding: 4px 9px; border-radius: 6px; font-size: 11px; font-family: inherit; cursor: pointer; border: none; flex-shrink: 0; }
+    .label-confirm-ok { background: var(--danger); color: #fff; font-weight: 600; }
+    .label-confirm-cancel { background: var(--bg-primary); color: var(--text-secondary); border: 1px solid var(--border); }
+    .label-confirm-cancel:hover { border-color: var(--text-muted); color: var(--text-primary); }
+    .label-editor-actions { display: flex; gap: 6px; margin-top: 10px; }
+    .label-editor-actions button { flex: 1; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-family: inherit; cursor: pointer; border: none; }
+    .label-save { background: var(--accent); color: #fff; font-weight: 600; }
+    .label-cancel { background: var(--bg-primary); color: var(--text-secondary); border: 1px solid var(--border); }
+    .label-cancel:hover { border-color: var(--text-muted); color: var(--text-primary); }
+    /* 事项内的标签 chip：颜色来自标签表，右边 × 只移除本事项的这一个引用 */
+    .todo-labels { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+    .todo-labels:empty { display: none; }
+    .todo-lbl { display: inline-flex; align-items: center; gap: 3px; max-width: 100%; padding: 2px 4px 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; color: #fff; }
+    .todo-lbl.dark { color: #4a3a00; }
+    .todo-lbl > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .todo-lbl-x { width: 13px; height: 13px; padding: 0; border: none; border-radius: 3px; background: rgba(255,255,255,.28); color: inherit; cursor: pointer; font-size: 11px; line-height: 1; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .todo-lbl-x:hover { background: rgba(0,0,0,.4); }
+    .todo-lbl.dark .todo-lbl-x { background: rgba(0,0,0,.16); }
+    .todo-item.drop-target { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow), var(--shadow); }
   </style>
 </head>
 <body class="has-skinbar">
@@ -332,6 +392,29 @@
             <input type="text" id="quick-input" placeholder="输入常用任务短语，回车保存..." maxlength="50">
             <button class="quick-save" id="quick-save">保存</button>
             <button class="quick-cancel" id="quick-cancel">取消</button>
+          </div>
+        </div>
+      </div>
+      <div class="label-card" id="label-card">
+        <div class="label-head" id="label-head">
+          <span class="label-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1.2"/></svg>
+            标签
+            <span class="label-count" id="label-count"></span>
+          </span>
+          <span class="label-chevron">▼</span>
+        </div>
+        <div class="label-body" id="label-body">
+          <div class="label-list" id="label-list"></div>
+          <div class="label-hint">按住标签拖到右侧任务上，即可给该任务加标签</div>
+          <div class="label-editor" id="label-editor">
+            <input type="text" id="label-input" placeholder="标签名称，回车保存..." maxlength="20" title="改名即时生效：任务上的标签会立刻跟着变">
+            <div class="label-palette" id="label-palette"></div>
+            <div class="label-error" id="label-error"></div>
+            <div class="label-editor-actions">
+              <button class="label-save" id="label-save">完成</button>
+              <button class="label-cancel" id="label-cancel">撤销</button>
+            </div>
           </div>
         </div>
       </div>
@@ -456,7 +539,7 @@ const todayBtn = document.getElementById('today-btn');
 // 旧数据兼容层：读入时补齐缺失字段，避免旧记录缺 date 时归组键变成 "undefined"。
 // 规则：id/text/date/createdAt 缺失或类型不对时补默认值；无法修复的条目直接丢弃，
 // 但保留 text 与 date 齐全的记录，确保用户已有任务不丢。
-const TODO_FIELDS = ['id', 'text', 'completed', 'createdAt', 'completedAt', 'date'];
+const TODO_FIELDS = ['id', 'text', 'completed', 'createdAt', 'completedAt', 'date', 'labels'];
 
 function normalizeTodo(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -473,7 +556,14 @@ function normalizeTodo(raw) {
   // completedAt 仅在已完成时有意义；缺失则不补（render 依赖它可选）
   const completedAt = (completed && typeof raw.completedAt === 'number' && isFinite(raw.completedAt)) ? raw.completedAt : null;
 
-  const todo = { id: id, text: text, completed: completed, createdAt: createdAt, completedAt: completedAt, date: date };
+  // 标签：存的是**标签 id**数组（不是名称）。
+  // 旧数据没有该字段 → 补空数组；非数组 / 含非字符串 → 清洗成空数组或只留合法 id。
+  // 名称与颜色在渲染时按 id 去标签表现查，所以改名/改色不必回写每条事项。
+  const labels = Array.isArray(raw.labels)
+    ? raw.labels.filter(v => typeof v === 'string' && v)
+    : [];
+
+  const todo = { id: id, text: text, completed: completed, createdAt: createdAt, completedAt: completedAt, date: date, labels: labels };
   // 保留未知字段（未来版本新增的、或用户自带的），回写时不能把它们抹掉
   Object.keys(raw).forEach(function (k) {
     if (TODO_FIELDS.indexOf(k) < 0) todo[k] = raw[k];
@@ -484,6 +574,8 @@ function normalizeTodo(raw) {
 // 判断一条记录是否与规范化结果等价。逐字段比较而非整串 JSON.stringify：
 // 键顺序不同不算"有差异"，且 completedAt 的「缺失」与「null」视为等价
 // —— addTodo 写入的记录本就没有 completedAt 键，若按键数比较会导致每次打开都回写。
+// labels 是数组，必须逐元素比较：数组用 !== 比较的是引用，
+// 两个内容相同的数组也会判为"有差异" → 每次打开页面都触发一次无谓回写。
 function sameTodo(a, b) {
   if (!a || !b) return a === b;
   const keys = Object.keys(a).concat(Object.keys(b));
@@ -491,6 +583,17 @@ function sameTodo(a, b) {
     const k = keys[i];
     const va = a[k], vb = b[k];
     if (k === 'completedAt' && (va === null || va === undefined) && (vb === null || vb === undefined)) continue;
+    if (k === 'labels') {
+      // 「键缺失」等价于「空数组」；但「非数组的脏值」与「数组」必须判为有差异，才会触发回写清洗
+      const la = va === undefined ? [] : va;
+      const lb = vb === undefined ? [] : vb;
+      const aIsArr = Array.isArray(la), bIsArr = Array.isArray(lb);
+      if (aIsArr !== bIsArr) return false;
+      if (!aIsArr) { if (la !== lb) return false; continue; }
+      if (la.length !== lb.length) return false;
+      for (let j = 0; j < la.length; j++) if (la[j] !== lb[j]) return false;
+      continue;
+    }
     if (va !== vb) return false;
   }
   return true;
@@ -515,7 +618,7 @@ function saveTodos() { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
 function saveCollapsed() { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedDates])); }
 
 function addTodo(text, date) {
-  todos.unshift({ id: generateId(), text: text.trim(), completed: false, createdAt: Date.now(), date: date });
+  todos.unshift({ id: generateId(), text: text.trim(), completed: false, createdAt: Date.now(), date: date, labels: [] });
   saveTodos();
   renderCalendar();
   render();
@@ -679,11 +782,13 @@ function render() {
         if (t.completed && t.completedAt) timeHtml += '<span class="completed-time">完成 ' + formatFullTime(t.completedAt) + '</span>';
         timeHtml += '</div>';
         if (t.isContinued) timeHtml = '<div class="todo-time"><span class="todo-source">来自 ' + formatDisplayDate(t.originDate) + '</span><span>创建 ' + formatTime(t.createdAt) + '</span></div>';
-        return '<div class="' + cls + '" data-id="' + t.id + '"><div class="checkbox' + (t.completed ? ' checked' : '') + '" onclick="toggleTodo(\'' + t.id + '\')"></div><div class="todo-content"><div class="todo-date" onclick="changeDate(\'' + t.id + '\',\'' + t.date + '\')">' + formatDisplayDate(t.date) + '</div><div class="todo-text" ondblclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')">' + escapeHtml(t.text) + '</div>' + timeHtml + '</div><div class="todo-actions"><button class="btn-edit" onclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-delete" onclick="deleteTodo(\'' + t.id + '\')" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>';
+        return '<div class="' + cls + '" data-id="' + t.id + '"><div class="checkbox' + (t.completed ? ' checked' : '') + '" onclick="toggleTodo(\'' + t.id + '\')"></div><div class="todo-content"><div class="todo-date" onclick="changeDate(\'' + t.id + '\',\'' + t.date + '\')">' + formatDisplayDate(t.date) + '</div><div class="todo-text" ondblclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')">' + escapeHtml(t.text) + '</div><div class="todo-labels"></div>' + timeHtml + '</div><div class="todo-actions"><button class="btn-edit" onclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-delete" onclick="deleteTodo(\'' + t.id + '\')" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>';
       }).join('') + '</div></div>';
     });
     todoList.innerHTML = html;
   }
+  // 标签用 DOM API 单独渲染：名称来自标签表，用 textContent 写入，不做字符串拼接
+  renderItemLabels();
   clearContainer.style.display = todos.some(t => t.completed) ? 'block' : 'none';
   updateStats();
   syncInputClear();
@@ -901,8 +1006,504 @@ syncInputClear();
   });
 })();
 
+/* ---------- 标签系统 ----------
+   全局标签表（labels_v1）：[{id, name, color}]，**独立于 todos_v3 存储**。
+   待办事项只存标签 id 数组（todo.labels），渲染时按 id 现查名称与颜色：
+     · 改全局标签名/颜色 → 只改标签表一处，事项里的 chip 自动跟着变
+     · 删全局标签 → 从所有事项里清掉这个 id
+     · 事项里 chip 右侧的 × 只移除**本事项**的这一个引用，不动全局标签表
+   （数据模型照抄 Aurora Board 的标签体系，见 trello看板/index.html） */
+const LABEL_KEY = 'labels_v1';
+const LABEL_COLLAPSED_KEY = 'label_collapsed';
+const LABEL_UI_KEY = 'label_ui_v1';
+const LABEL_PALETTE = [
+  '#ff5c5c','#ff8a3d','#ffb020','#f5c451','#3ecf8e','#2fd6c4','#4d9dff','#a77bff',
+  '#ff6fae','#ec4899','#8b5cf6','#6366f1','#0ea5e9','#14b8a6','#22c55e','#eab308',
+  '#64748b','#7d879c','#e11d48','#0891b2'
+];
+/* 首次使用时的内置标签，都可以在面板里改名 / 改色 / 删除 */
+const LABEL_DEFAULTS = [
+  { id: 'important', name: '重要', color: '#ff5c5c' },
+  { id: 'urgent',    name: '紧急', color: '#ff8a3d' },
+  { id: 'work',      name: '工作', color: '#4d9dff' },
+  { id: 'life',      name: '生活', color: '#3ecf8e' },
+  { id: 'study',     name: '学习', color: '#a77bff' },
+  { id: 'misc',      name: '其他', color: '#7d879c' }
+];
+
+let labels = [];
+let labelEditingId = null;          // null = 新增；字符串 = 正在编辑的标签 id
+let labelEditingColor = LABEL_PALETTE[4];
+let labelEditingName = '';          // 打开编辑器时的原名（点「取消」时回滚用）
+let labelPendingDelete = null;      // 已点「删」、等待二次确认的标签 id
+let labelCollapsed = false;
+
+const labelCard = document.getElementById('label-card');
+const labelHead = document.getElementById('label-head');
+const labelList = document.getElementById('label-list');
+const labelCount = document.getElementById('label-count');
+const labelEditor = document.getElementById('label-editor');
+const labelInput = document.getElementById('label-input');
+const labelPalette = document.getElementById('label-palette');
+const labelError = document.getElementById('label-error');
+const labelSaveBtn = document.getElementById('label-save');
+const labelCancelBtn = document.getElementById('label-cancel');
+
+function loadLabels() {
+  try {
+    const raw = localStorage.getItem(LABEL_KEY);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      // 键存在且是数组就用它——哪怕是空数组：用户可能把标签删光了，不该又冒出内置的
+      if (Array.isArray(parsed)) {
+        labels = parsed.filter(x => x && x.id).map(x => ({
+          id: String(x.id),
+          name: String(x.name == null ? x.id : x.name),
+          color: /^#[0-9a-fA-F]{6}$/.test(x.color) ? x.color : '#7d879c'
+        }));
+        return;
+      }
+    }
+  } catch (e) {}
+  labels = LABEL_DEFAULTS.map(x => ({ id: x.id, name: x.name, color: x.color }));
+  saveLabels();
+}
+
+function saveLabels() {
+  try { localStorage.setItem(LABEL_KEY, JSON.stringify(labels)); } catch (e) {}
+}
+
+/* 面板的临时状态（正在编辑哪个标签、待确认删除哪个标签）也落库：
+   刷新页面后编辑框与确认条还在，不会让用户"填了一半就没了"。 */
+function loadLabelUI() {
+  try {
+    const raw = localStorage.getItem(LABEL_UI_KEY);
+    const d = raw ? JSON.parse(raw) : null;
+    if (d && typeof d === 'object' && !Array.isArray(d)) {
+      labelEditingId = typeof d.editingId === 'string' ? d.editingId : null;
+      labelEditingColor = /^#[0-9a-fA-F]{6}$/.test(d.editingColor) ? d.editingColor : LABEL_PALETTE[4];
+      labelEditingName = typeof d.editingName === 'string' ? d.editingName : '';
+      labelPendingDelete = typeof d.pendingDelete === 'string' ? d.pendingDelete : null;
+    }
+  } catch (e) {}
+}
+
+function saveLabelUI() {
+  try {
+    localStorage.setItem(LABEL_UI_KEY, JSON.stringify({
+      editingId: labelEditingId,
+      editingColor: labelEditingColor,
+      editingName: labelEditingName,
+      pendingDelete: labelPendingDelete
+    }));
+  } catch (e) {}
+}
+
+function labelDef(id) { return labels.find(l => l.id === id) || null; }
+function labelName(id) { const d = labelDef(id); return d ? d.name : id; }
+function labelColor(id, fb) { const d = labelDef(id); return d ? d.color : (fb || '#7d879c'); }
+function labelExists(id) { return !!labelDef(id); }
+
+/* 亮度判断：只有确实很浅的底色才改用深色字（阈值取 185，
+   正好覆盖内置的黄色 #f5c451，其余内置色维持白字） */
+function isLight(hex) {
+  const h = String(hex || '').replace('#', '');
+  if (h.length < 6) return false;
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 185;
+}
+
+/* 清掉指向已删除标签的悬空引用（标签被删后事项不应再挂着无效 id） */
+function pruneDanglingLabels() {
+  let changed = false;
+  todos.forEach(t => {
+    if (t.labels && t.labels.length) {
+      const keep = t.labels.filter(id => labelExists(id));
+      if (keep.length !== t.labels.length) { t.labels = keep; changed = true; }
+    }
+  });
+  if (changed) saveTodos();
+}
+
+/* ---------- 标签管理面板 ---------- */
+function renderLabelPanel() {
+  labelList.innerHTML = '';
+  labels.forEach(l => {
+    const row = document.createElement('div');
+    row.className = 'label-row';
+    row.draggable = true;
+    row.dataset.labelId = l.id;
+    row.title = '按住拖到任务上';
+
+    const dot = document.createElement('span');
+    dot.className = 'label-dot';
+    dot.style.background = l.color;
+
+    const name = document.createElement('span');
+    name.className = 'label-name';
+    name.textContent = l.name;
+
+    const actions = document.createElement('span');
+    actions.className = 'label-row-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'label-row-btn edit';
+    editBtn.textContent = '改';
+    editBtn.title = '改名 / 改色';
+    editBtn.addEventListener('click', ev => { ev.stopPropagation(); openLabelEditor(l.id); });
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'label-row-btn del';
+    delBtn.textContent = '删';
+    delBtn.title = '删除标签（会从所有任务上移除）';
+    delBtn.addEventListener('click', ev => { ev.stopPropagation(); requestDelete(l.id); });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    row.appendChild(dot);
+    row.appendChild(name);
+    row.appendChild(actions);
+    row.addEventListener('dragstart', onLabelDragStart);
+    row.addEventListener('dragend', onLabelDragEnd);
+    labelList.appendChild(row);
+
+    // 已点「删」但还没确认：在这行下面展开一条二次确认条
+    if (labelPendingDelete === l.id) {
+      const used = todos.filter(t => (t.labels || []).indexOf(l.id) >= 0).length;
+      const strip = document.createElement('div');
+      strip.className = 'label-confirm';
+      const txt = document.createElement('span');
+      txt.className = 'label-confirm-text';
+      txt.textContent = '确定删除「' + l.name + '」？' +
+        (used ? ('该标签正被 ' + used + ' 个任务使用，删除后这些任务会移除该标签。')
+              : '该标签暂未被任何任务使用。');
+      const okBtn = document.createElement('button');
+      okBtn.type = 'button';
+      okBtn.className = 'label-confirm-ok';
+      okBtn.textContent = '删除';
+      okBtn.addEventListener('click', ev => { ev.stopPropagation(); doDelete(l.id); });
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'label-confirm-cancel';
+      cancelBtn.textContent = '取消';
+      cancelBtn.addEventListener('click', ev => { ev.stopPropagation(); cancelDelete(); });
+      strip.appendChild(txt);
+      strip.appendChild(okBtn);
+      strip.appendChild(cancelBtn);
+      labelList.appendChild(strip);
+    }
+  });
+
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'label-add';
+  addBtn.textContent = '+ 添加标签';
+  addBtn.addEventListener('click', () => openLabelEditor(null));
+  labelList.appendChild(addBtn);
+
+  labelCount.textContent = labels.length ? '(' + labels.length + ')' : '';
+}
+
+function renderLabelPalette() {
+  labelPalette.innerHTML = '';
+  LABEL_PALETTE.forEach(c => {
+    const sw = document.createElement('button');
+    sw.type = 'button';
+    sw.className = 'label-sw' + (String(labelEditingColor).toLowerCase() === c.toLowerCase() ? ' on' : '');
+    sw.style.background = c;
+    sw.title = c;
+    sw.addEventListener('click', () => { setLabelColor(c); });
+    labelPalette.appendChild(sw);
+  });
+  const custom = document.createElement('input');
+  custom.type = 'color';
+  custom.className = 'label-custom';
+  custom.value = labelEditingColor;
+  custom.title = '自定义颜色';
+  custom.addEventListener('input', () => { setLabelColor(custom.value); });
+  labelPalette.appendChild(custom);
+}
+
+function showLabelError(msg) {
+  labelError.textContent = msg;
+  labelError.classList.toggle('show', !!msg);
+}
+
+/* 刷新后把上次没关掉的编辑框 / 确认条恢复出来（状态存在 label_ui_v1 里） */
+function restoreLabelEditor() {
+  if (labelEditingId && !labelDef(labelEditingId)) { labelEditingId = null; labelEditingName = ''; }
+  if (labelPendingDelete && !labelDef(labelPendingDelete)) labelPendingDelete = null;
+  if (labelEditingId) {
+    const d = labelDef(labelEditingId);
+    labelInput.value = d.name;
+    labelEditingColor = d.color;
+    renderLabelPalette();
+    labelEditor.classList.add('show');
+  }
+}
+
+/* 实时改名/改色后，就地更新面板那一行的文字与色块。
+   注意不能调 renderLabelPanel()——那会把编辑器整个重建掉，正在输入的焦点就没了。 */
+function syncLabelRow(id) {
+  const row = labelList.querySelector('.label-row[data-label-id="' + id + '"]');
+  if (!row) return;
+  const d = labelDef(id);
+  if (!d) return;
+  const nm = row.querySelector('.label-name');
+  if (nm) nm.textContent = d.name;
+  const dot = row.querySelector('.label-dot');
+  if (dot) dot.style.background = d.color;
+}
+
+function openLabelEditor(id) {
+  labelEditingId = (typeof id === 'string') ? id : null;
+  const d = labelEditingId ? labelDef(labelEditingId) : null;
+  labelEditingName = d ? d.name : '';          // 记下原名，点「取消」时回滚
+  labelInput.value = labelEditingName;
+  labelEditingColor = d ? d.color : LABEL_PALETTE[4];
+  showLabelError('');
+  renderLabelPalette();
+  labelEditor.classList.add('show');
+  saveLabelUI();
+  labelInput.focus();
+  try { labelInput.setSelectionRange(labelInput.value.length, labelInput.value.length); } catch (e) {}
+}
+
+function closeLabelEditor(revert) {
+  if (revert && labelEditingId) {
+    // 取消：把名称与颜色回滚到打开编辑器时的样子
+    const d = labelDef(labelEditingId);
+    if (d) { d.name = labelEditingName; d.color = labelEditingColor; saveLabels(); }
+  }
+  labelEditingId = null;
+  labelInput.value = '';
+  labelEditor.classList.remove('show');
+  showLabelError('');
+  saveLabelUI();
+  renderLabelPanel();
+  render();
+}
+
+function commitLabel() {
+  const name = labelInput.value.trim();
+  if (!name) { showLabelError('标签名不能为空'); labelInput.focus(); return; }
+  if (labelEditingId) {
+    const d = labelDef(labelEditingId);
+    if (!d) { closeLabelEditor(false); return; }
+    if (labels.some(l => l.id !== labelEditingId && l.name === name)) {
+      showLabelError('已存在同名标签「' + name + '」');
+      return;
+    }
+    d.name = name;
+    d.color = labelEditingColor;
+    saveLabels();
+    saveLabelUI();
+    closeLabelEditor(false);
+    return;
+  }
+  if (labels.some(l => l.name === name)) { showLabelError('已存在同名标签「' + name + '」'); return; }
+  labels.push({ id: 'lbl_' + generateId(), name: name, color: labelEditingColor });
+  saveLabels();
+  closeLabelEditor(false);
+}
+
+/* 选色即生效：改的是标签表里的一处，事项里的 chip 按 id 现查，自动跟着变 */
+function setLabelColor(c) {
+  if (!c) return;
+  labelEditingColor = c;
+  saveLabelUI();
+  renderLabelPalette();
+  if (labelEditingId) {
+    const d = labelDef(labelEditingId);
+    if (d && d.color !== c) { d.color = c; saveLabels(); syncLabelRow(labelEditingId); render(); }
+  }
+}
+
+/* 删除走**两步**，不用原生 confirm()：
+   原生弹窗在嵌入式浏览器里可能被自动 dismiss（点了没反应），样式也和整套皮肤不搭。
+   第一步点「删」→ 在面板里展开二次确认条（状态落库，刷新不丢）；第二步才真删。 */
+function requestDelete(id) {
+  if (!labelDef(id)) return;
+  labelPendingDelete = id;
+  saveLabelUI();
+  renderLabelPanel();
+}
+
+function cancelDelete() {
+  labelPendingDelete = null;
+  saveLabelUI();
+  renderLabelPanel();
+}
+
+/* 真删：标签表里移除，并从**所有**任务上清掉这个引用 */
+function doDelete(id) {
+  const d = labelDef(id);
+  if (!d) return;
+  labels = labels.filter(l => l.id !== id);
+  saveLabels();
+  let changed = false;
+  todos.forEach(t => {
+    if (t.labels && t.labels.indexOf(id) >= 0) {
+      t.labels = t.labels.filter(x => x !== id);
+      changed = true;
+    }
+  });
+  if (changed) saveTodos();
+  if (labelPendingDelete === id) { labelPendingDelete = null; saveLabelUI(); }
+  if (labelEditingId === id) closeLabelEditor(false);
+  renderLabelPanel();
+  render();
+}
+
+function toggleLabelPanel() {
+  labelCollapsed = !labelCollapsed;
+  labelCard.classList.toggle('collapsed', labelCollapsed);
+  try { localStorage.setItem(LABEL_COLLAPSED_KEY, labelCollapsed ? '1' : '0'); } catch (e) {}
+}
+
+labelHead.addEventListener('click', toggleLabelPanel);
+labelSaveBtn.addEventListener('click', commitLabel);
+labelCancelBtn.addEventListener('click', () => closeLabelEditor(true));
+
+/* 输入即改：改名实时生效，事项里的 chip 按 id 现查，名字立刻跟着变。
+   （同时被校验拦下：空名 / 与别的标签重名都不写入）
+   input 与 change 都监听：前者覆盖逐字输入，后者覆盖粘贴 / 中文输入法上屏。 */
+function applyLiveName() {
+  if (!labelEditingId) return;
+  const d = labelDef(labelEditingId);
+  if (!d) return;
+  const name = labelInput.value.trim();
+  if (!name) { showLabelError('标签名不能为空'); return; }
+  if (labels.some(l => l.id !== labelEditingId && l.name === name)) {
+    showLabelError('已存在同名标签「' + name + '」');
+    return;
+  }
+  showLabelError('');
+  if (d.name !== name) { d.name = name; saveLabels(); syncLabelRow(labelEditingId); render(); }
+}
+labelInput.addEventListener('input', applyLiveName);
+labelInput.addEventListener('change', applyLiveName);
+
+/* 中文输入法组词过程中的 Enter 不能当成提交 */
+let labelComposing = false;
+labelInput.addEventListener('compositionstart', () => { labelComposing = true; });
+labelInput.addEventListener('compositionend', () => { labelComposing = false; });
+labelInput.addEventListener('keydown', e => {
+  if (labelComposing) return;
+  if (e.key === 'Enter') { e.preventDefault(); commitLabel(); }
+  else if (e.key === 'Escape') { e.preventDefault(); closeLabelEditor(true); }
+});
+
+/* ---------- 事项内的标签 ---------- */
+function renderItemLabels() {
+  const byId = {};
+  todos.forEach(t => { byId[t.id] = t; });
+  todoList.querySelectorAll('.todo-item').forEach(itemEl => {
+    const box = itemEl.querySelector('.todo-labels');
+    if (!box) return;
+    box.innerHTML = '';
+    const t = byId[itemEl.dataset.id];
+    if (!t || !t.labels) return;
+    t.labels.forEach(lid => {
+      const def = labelDef(lid);
+      if (!def) return;                    // 悬空引用不渲染
+      const chip = document.createElement('span');
+      chip.className = 'todo-lbl' + (isLight(def.color) ? ' dark' : '');
+      chip.style.background = def.color;
+      const name = document.createElement('span');
+      name.textContent = def.name;
+      chip.appendChild(name);
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'todo-lbl-x';
+      x.textContent = '×';
+      x.title = '从该任务移除此标签';
+      x.addEventListener('click', ev => { ev.stopPropagation(); removeLabelFromTodo(t.id, lid); });
+      chip.appendChild(x);
+      box.appendChild(chip);
+    });
+  });
+}
+
+function addLabelToTodo(todoId, labelId) {
+  const t = todos.find(x => x.id === todoId);
+  if (!t || !labelExists(labelId)) return;
+  if (!Array.isArray(t.labels)) t.labels = [];
+  if (t.labels.indexOf(labelId) >= 0) return;
+  t.labels.push(labelId);
+  saveTodos();
+  render();
+}
+
+function removeLabelFromTodo(todoId, labelId) {
+  const t = todos.find(x => x.id === todoId);
+  if (!t || !Array.isArray(t.labels)) return;
+  const i = t.labels.indexOf(labelId);
+  if (i < 0) return;
+  t.labels.splice(i, 1);
+  saveTodos();
+  render();
+}
+
+/* ---------- 拖放：把全局标签拖到某个任务上 ---------- */
+let dropTargetEl = null;
+
+function clearDropHighlight() {
+  if (dropTargetEl) { dropTargetEl.classList.remove('drop-target'); dropTargetEl = null; }
+}
+
+function onLabelDragStart(e) {
+  e.dataTransfer.setData('text/plain', this.dataset.labelId);
+  e.dataTransfer.effectAllowed = 'copy';
+  this.classList.add('dragging');
+}
+
+function onLabelDragEnd(e) {
+  this.classList.remove('dragging');
+  clearDropHighlight();
+}
+
+todoList.addEventListener('dragover', e => {
+  const item = e.target.closest ? e.target.closest('.todo-item') : null;
+  if (!item) return;                       // 不在任务上：不 preventDefault，浏览器不会触发 drop
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  if (dropTargetEl !== item) {
+    clearDropHighlight();
+    item.classList.add('drop-target');
+    dropTargetEl = item;
+  }
+});
+
+todoList.addEventListener('dragleave', e => {
+  const item = e.target.closest ? e.target.closest('.todo-item') : null;
+  if (!item) return;
+  // 在任务内部的子元素之间移动也会冒泡 dragleave，用 relatedTarget 判断是否真的离开了这个任务
+  if (e.relatedTarget && item.contains(e.relatedTarget)) return;
+  if (item === dropTargetEl) clearDropHighlight();
+});
+
+todoList.addEventListener('drop', e => {
+  e.preventDefault();
+  const item = e.target.closest ? e.target.closest('.todo-item') : null;
+  clearDropHighlight();
+  if (!item) return;
+  const id = e.dataTransfer.getData('text/plain');
+  if (!id) return;
+  addLabelToTodo(item.dataset.id, id);
+});
+
 todoDate.value = selectedDate;
+loadLabels();
 loadTodos();
+pruneDanglingLabels();
+labelCollapsed = localStorage.getItem(LABEL_COLLAPSED_KEY) === '1';
+labelCard.classList.toggle('collapsed', labelCollapsed);
+loadLabelUI();
+restoreLabelEditor();
+renderLabelPanel();
 renderCalendar();
 render();
   </script>
