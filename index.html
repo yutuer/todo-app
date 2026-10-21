@@ -310,6 +310,10 @@
     .label-list { display: flex; flex-direction: column; gap: 5px; }
     .label-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; cursor: grab; transition: border-color 0.15s, opacity 0.15s; }
     .label-row:hover { border-color: var(--accent); }
+    .label-row.filtering { border-color: var(--accent); background: var(--accent-light); }
+    .label-row.filtering .label-name { color: var(--accent); font-weight: 600; }
+    .label-row-count { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+    .label-row-count.zero { opacity: .45; }
     .label-row.dragging { opacity: 0.4; cursor: grabbing; }
     .label-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(255,255,255,.14); }
     .label-name { flex: 1; min-width: 0; font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -338,6 +342,11 @@
     .label-confirm-ok { background: var(--danger); color: #fff; font-weight: 600; }
     .label-confirm-cancel { background: var(--bg-primary); color: var(--text-secondary); border: 1px solid var(--border); }
     .label-confirm-cancel:hover { border-color: var(--text-muted); color: var(--text-primary); }
+    /* 主栏筛选条上的「当前标签筛选」标记 */
+    .label-filter-chip { display: none; align-items: center; gap: 5px; padding: 5px 6px 5px 10px; background: var(--accent-light); border: 1px solid var(--accent-glow); border-radius: 8px; font-size: 12px; font-weight: 500; color: var(--accent); }
+    .label-filter-chip.show { display: inline-flex; }
+    .label-filter-x { width: 16px; height: 16px; padding: 0; border: none; border-radius: 50%; background: var(--accent); color: #fff; cursor: pointer; font-size: 11px; line-height: 1; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .label-filter-x:hover { background: var(--danger); }
     .label-editor-actions { display: flex; gap: 6px; margin-top: 10px; }
     .label-editor-actions button { flex: 1; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-family: inherit; cursor: pointer; border: none; }
     .label-save { background: var(--accent); color: #fff; font-weight: 600; }
@@ -406,7 +415,7 @@
         </div>
         <div class="label-body" id="label-body">
           <div class="label-list" id="label-list"></div>
-          <div class="label-hint">按住标签拖到右侧任务上，即可给该任务加标签</div>
+          <div class="label-hint">点标签行 = 只看该标签的事项<br>按住标签拖到右侧任务上 = 给任务加标签</div>
           <div class="label-editor" id="label-editor">
             <input type="text" id="label-input" placeholder="标签名称，回车保存..." maxlength="20" title="改名即时生效：任务上的标签会立刻跟着变">
             <div class="label-palette" id="label-palette"></div>
@@ -445,6 +454,7 @@
         <button class="filter-btn active" data-filter="all">全部</button>
         <button class="filter-btn" data-filter="active">进行中</button>
         <button class="filter-btn" data-filter="completed">已完成</button>
+        <span class="label-filter-chip" id="label-filter-chip"></span>
       </div>
       <div class="todo-list" id="todo-list"></div>
       <div class="clear-completed" id="clear-container" style="display:none;"><button class="btn-clear" id="clear-btn">清除已完成</button></div>
@@ -689,9 +699,50 @@ function toggleCollapse(dateKey) {
   if (section) section.classList.toggle('collapsed', collapsedDates.has(dateKey));
 }
 
+/* ---------- 标签筛选：点标签行 = 只看带该标签的事项 ---------- */
+/* 与「全部 / 进行中 / 已完成」取交集：两个条件同时满足才显示。
+   再点一次同一个标签 = 取消筛选。 */
+function toggleLabelFilter(id) {
+  if (!labelDef(id)) return;
+  labelFilter = (labelFilter === id) ? null : id;
+  saveLabelUI();
+  renderLabelPanel();
+  render();
+}
+
+function clearLabelFilter() {
+  if (!labelFilter) return;
+  labelFilter = null;
+  saveLabelUI();
+  renderLabelPanel();
+  render();
+}
+
+/* 主栏筛选条上的「标签：xxx ×」标记 */
+function renderLabelFilterChip() {
+  const chip = document.getElementById('label-filter-chip');
+  if (!chip) return;
+  chip.innerHTML = '';
+  if (!labelFilter) { chip.classList.remove('show'); return; }
+  if (!labelDef(labelFilter)) { labelFilter = null; chip.classList.remove('show'); return; }
+  const name = document.createElement('span');
+  name.textContent = '标签：' + labelName(labelFilter);
+  const x = document.createElement('button');
+  x.type = 'button';
+  x.className = 'label-filter-x';
+  x.textContent = '×';
+  x.title = '取消标签筛选';
+  x.addEventListener('click', ev => { ev.stopPropagation(); clearLabelFilter(); });
+  chip.appendChild(name);
+  chip.appendChild(x);
+  chip.classList.add('show');
+}
+
 function getGroupedTodos() {
   let filtered = currentFilter === 'active' ? todos.filter(x => !x.completed) :
                  currentFilter === 'completed' ? todos.filter(x => x.completed) : todos;
+  // 标签筛选：只保留带该标签的事项（与状态筛选取交集）
+  if (labelFilter) filtered = filtered.filter(t => t.labels && t.labels.indexOf(labelFilter) >= 0);
   const today = formatDateKey(new Date());
   const grouped = {};
   // 顺延口径：今天之前（任意日期，不只昨天）所有未完成任务，移入今天分组。
@@ -789,6 +840,7 @@ function render() {
   }
   // 标签用 DOM API 单独渲染：名称来自标签表，用 textContent 写入，不做字符串拼接
   renderItemLabels();
+  renderLabelFilterChip();
   clearContainer.style.display = todos.some(t => t.completed) ? 'block' : 'none';
   updateStats();
   syncInputClear();
@@ -1036,6 +1088,7 @@ let labelEditingId = null;          // null = 新增；字符串 = 正在编辑�
 let labelEditingColor = LABEL_PALETTE[4];
 let labelEditingName = '';          // 打开编辑器时的原名（点「取消」时回滚用）
 let labelPendingDelete = null;      // 已点「删」、等待二次确认的标签 id
+let labelFilter = null;             // 当前标签筛选（标签 id），null = 不筛
 let labelCollapsed = false;
 
 const labelCard = document.getElementById('label-card');
@@ -1084,6 +1137,9 @@ function loadLabelUI() {
       labelEditingColor = /^#[0-9a-fA-F]{6}$/.test(d.editingColor) ? d.editingColor : LABEL_PALETTE[4];
       labelEditingName = typeof d.editingName === 'string' ? d.editingName : '';
       labelPendingDelete = typeof d.pendingDelete === 'string' ? d.pendingDelete : null;
+      labelFilter = typeof d.filter === 'string' ? d.filter : null;
+      // 标签可能已被删（换了浏览器 / 清了标签表），筛选自动失效
+      if (labelFilter && !labels.some(l => l.id === labelFilter)) labelFilter = null;
     }
   } catch (e) {}
 }
@@ -1094,7 +1150,8 @@ function saveLabelUI() {
       editingId: labelEditingId,
       editingColor: labelEditingColor,
       editingName: labelEditingName,
-      pendingDelete: labelPendingDelete
+      pendingDelete: labelPendingDelete,
+      filter: labelFilter
     }));
   } catch (e) {}
 }
@@ -1130,10 +1187,10 @@ function renderLabelPanel() {
   labelList.innerHTML = '';
   labels.forEach(l => {
     const row = document.createElement('div');
-    row.className = 'label-row';
+    row.className = 'label-row' + (labelFilter === l.id ? ' filtering' : '');
     row.draggable = true;
     row.dataset.labelId = l.id;
-    row.title = '按住拖到任务上';
+    row.title = '点一下只看该标签的事项；按住可拖到任务上';
 
     const dot = document.createElement('span');
     dot.className = 'label-dot';
@@ -1142,6 +1199,12 @@ function renderLabelPanel() {
     const name = document.createElement('span');
     name.className = 'label-name';
     name.textContent = l.name;
+
+    // 该标签下有多少个事项（顺带告诉用户哪些标签值得筛）
+    const used = todos.filter(t => (t.labels || []).indexOf(l.id) >= 0).length;
+    const count = document.createElement('span');
+    count.className = 'label-row-count' + (used ? '' : ' zero');
+    count.textContent = '(' + used + ')';
 
     const actions = document.createElement('span');
     actions.className = 'label-row-actions';
@@ -1164,7 +1227,17 @@ function renderLabelPanel() {
     actions.appendChild(delBtn);
     row.appendChild(dot);
     row.appendChild(name);
+    row.appendChild(count);
     row.appendChild(actions);
+
+    // 点标签行 = 切换筛选。按下与抬起位置差得多说明是在拖动，不能当成点击。
+    let downX = 0, downY = 0;
+    row.addEventListener('mousedown', e => { downX = e.clientX; downY = e.clientY; });
+    row.addEventListener('click', e => {
+      if (Math.abs(e.clientX - downX) > 4 || Math.abs(e.clientY - downY) > 4) return;
+      toggleLabelFilter(l.id);
+    });
+
     row.addEventListener('dragstart', onLabelDragStart);
     row.addEventListener('dragend', onLabelDragEnd);
     labelList.appendChild(row);
@@ -1343,6 +1416,9 @@ function doDelete(id) {
   if (!d) return;
   labels = labels.filter(l => l.id !== id);
   saveLabels();
+  if (labelPendingDelete === id) labelPendingDelete = null;   // 待确认条关掉
+  if (labelFilter === id) labelFilter = null;                 // 正在筛的标签被删了，筛选自动失效
+  saveLabelUI();
   let changed = false;
   todos.forEach(t => {
     if (t.labels && t.labels.indexOf(id) >= 0) {
@@ -1351,7 +1427,6 @@ function doDelete(id) {
     }
   });
   if (changed) saveTodos();
-  if (labelPendingDelete === id) { labelPendingDelete = null; saveLabelUI(); }
   if (labelEditingId === id) closeLabelEditor(false);
   renderLabelPanel();
   render();
@@ -1435,6 +1510,7 @@ function addLabelToTodo(todoId, labelId) {
   t.labels.push(labelId);
   saveTodos();
   render();
+  renderLabelPanel();   // 面板上的「该标签有多少事项」计数要跟着变
 }
 
 function removeLabelFromTodo(todoId, labelId) {
@@ -1445,6 +1521,7 @@ function removeLabelFromTodo(todoId, labelId) {
   t.labels.splice(i, 1);
   saveTodos();
   render();
+  renderLabelPanel();
 }
 
 /* ---------- 拖放：把全局标签拖到某个任务上 ---------- */
