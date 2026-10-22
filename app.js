@@ -48,6 +48,8 @@ function formatFullTime(ts) {
 }
 
 function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+/* 属性值专用：escapeHtml 只转义 & < >，引号要另外处理（值写进双引号属性里） */
+function escapeAttr(text) { return escapeHtml(text).replace(/"/g, '&quot;'); }
 
 function loadCollapsed() {
   // 存储值损坏时不能让整个脚本挂掉：解析失败一律回落到空集合
@@ -365,39 +367,91 @@ function render() {
   const grouped = getGroupedTodos();
   const today = formatDateKey(new Date());
   const dateKeys = sortDateKeysForDisplay(Object.keys(grouped), today);
-  
+
   if (dateKeys.length === 0) {
     todoList.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><p>暂无任务</p></div>';
   } else {
-    let html = '';
-    dateKeys.forEach(dateKey => {
+    todoList.innerHTML = dateKeys.map(dateKey => {
       const dayTodos = grouped[dateKey];
       const continued = dayTodos.filter(t => t.isContinued).length;
       const tag = getDateTag(dateKey);
-      const subLabel = dateKey === today && continued > 0 ? ' <span style="color:#fb923c;font-size:10px">(含往期未完成 ' + continued + ' 项)</span>' : '';
+      const subLabel = dateKey === today && continued > 0 ? ` <span style="color:#fb923c;font-size:10px">(含往期未完成 ${continued} 项)</span>` : '';
       const isPast = isPastDate(dateKey);
       const isCollapsed = collapsedDates.has(dateKey);
-      const hint = isPast && isCollapsed ? '<span class="collapsed-hint">(' + dayTodos.length + ' 项)</span>' : '';
-      
-      html += '<div class="date-section' + (isCollapsed ? ' collapsed' : '') + '" data-date="' + dateKey + '">';
-      html += '<div class="date-label" onclick="toggleCollapse(\'' + dateKey + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>' + formatDisplayDate(dateKey) + ' ' + tag + ' <span class="count">(' + dayTodos.length + ')' + subLabel + hint + '</span><span class="chevron">▼</span></div>';
-      html += '<div class="todo-list">' + dayTodos.map(t => {
+      const hint = isPast && isCollapsed ? `<span class="collapsed-hint">(${dayTodos.length} 项)</span>` : '';
+
+      const items = dayTodos.map(t => {
         const cls = 'todo-item' + (t.completed ? ' completed' : '') + (t.isContinued ? ' continued' : '');
-        let timeHtml = '<div class="todo-time"><span>创建 ' + formatTime(t.createdAt) + '</span>';
-        if (t.completed && t.completedAt) timeHtml += '<span class="completed-time">完成 ' + formatFullTime(t.completedAt) + '</span>';
+        let timeHtml = `<div class="todo-time"><span>创建 ${formatTime(t.createdAt)}</span>`;
+        if (t.completed && t.completedAt) timeHtml += `<span class="completed-time">完成 ${formatFullTime(t.completedAt)}</span>`;
         timeHtml += '</div>';
-        if (t.isContinued) timeHtml = '<div class="todo-time"><span class="todo-source">来自 ' + formatDisplayDate(t.originDate) + '</span><span>创建 ' + formatTime(t.createdAt) + '</span></div>';
-        return '<div class="' + cls + '" data-id="' + t.id + '"><div class="checkbox' + (t.completed ? ' checked' : '') + '" onclick="toggleTodo(\'' + t.id + '\')"></div><div class="todo-content"><div class="todo-date" onclick="changeDate(\'' + t.id + '\',\'' + t.date + '\')">' + formatDisplayDate(t.date) + '</div><div class="todo-text" ondblclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')">' + escapeHtml(t.text) + '</div><div class="todo-labels"></div>' + timeHtml + '</div><div class="todo-actions"><button class="btn-edit" onclick="startEdit(\'' + t.id + '\',\'' + escapeHtml(t.text).replace(/'/g, "\\'") + '\')" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-delete" onclick="deleteTodo(\'' + t.id + '\')" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>';
-      }).join('') + '</div></div>';
-    });
-    todoList.innerHTML = html;
+        if (t.isContinued) timeHtml = `<div class="todo-time"><span class="todo-source">来自 ${formatDisplayDate(t.originDate)}</span><span>创建 ${formatTime(t.createdAt)}</span></div>`;
+        return `
+          <div class="${cls}" data-id="${escapeAttr(t.id)}">
+            <div class="checkbox${t.completed ? ' checked' : ''}"></div>
+            <div class="todo-content">
+              <div class="todo-date" data-date="${escapeAttr(t.date)}">${formatDisplayDate(t.date)}</div>
+              <div class="todo-text">${escapeHtml(t.text)}</div>
+              <div class="todo-labels"></div>
+              ${timeHtml}
+            </div>
+            <div class="todo-actions">
+              <button class="btn-edit" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button class="btn-delete" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+            </div>
+          </div>`;
+      }).join('');
+
+      return `
+        <div class="date-section${isCollapsed ? ' collapsed' : ''}" data-date="${escapeAttr(dateKey)}">
+          <div class="date-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>${formatDisplayDate(dateKey)} ${tag} <span class="count">(${dayTodos.length})${subLabel}${hint}</span><span class="chevron">▼</span></div>
+          <div class="todo-list">${items}</div>
+        </div>`;
+    }).join('');
   }
+  // 事件一律用 addEventListener 绑定（不写内联 onclick），文本从 DOM 取，无需拼进 HTML 属性
+  bindTodoItemEvents();
   // 标签用 DOM API 单独渲染：名称来自标签表，用 textContent 写入，不做字符串拼接
   renderItemLabels();
   renderLabelFilterChip();
   clearContainer.style.display = todos.some(t => t.completed) ? 'block' : 'none';
   updateStats();
   syncInputClear();
+}
+
+/* 绑定列表里的交互。
+   原来这些是写在 HTML 里的内联 onclick（toggleCollapse / toggleTodo / changeDate /
+   startEdit / deleteTodo），文字 escapeHtml 之后还得把单引号转义塞进属性里 ——
+   引号一多就整块渲染失败。现在改成渲染后统一绑定：
+     · 回调参数从 dataset / textContent 取，**不再需要引号转义**
+     · 用户文本只经过 escapeHtml 一次，浏览器解码回来就是原文
+   每次 render() 都会重建列表并重新绑定，不会重复绑定。 */
+function bindTodoItemEvents() {
+  todoList.querySelectorAll('.date-section').forEach(sectionEl => {
+    const dateKey = sectionEl.dataset.date;
+    const labelEl = sectionEl.querySelector('.date-label');
+    if (labelEl) labelEl.addEventListener('click', () => toggleCollapse(dateKey));
+
+    sectionEl.querySelectorAll('.todo-item').forEach(itemEl => {
+      const id = itemEl.dataset.id;
+      const textEl = itemEl.querySelector('.todo-text');
+      const text = textEl ? textEl.textContent : '';
+
+      const checkbox = itemEl.querySelector('.checkbox');
+      if (checkbox) checkbox.addEventListener('click', () => toggleTodo(id));
+
+      const dateEl = itemEl.querySelector('.todo-date');
+      if (dateEl) dateEl.addEventListener('click', () => changeDate(id, dateEl.dataset.date));
+
+      if (textEl) textEl.addEventListener('dblclick', () => startEdit(id, text));
+
+      const editBtn = itemEl.querySelector('.btn-edit');
+      if (editBtn) editBtn.addEventListener('click', () => startEdit(id, text));
+
+      const delBtn = itemEl.querySelector('.btn-delete');
+      if (delBtn) delBtn.addEventListener('click', () => deleteTodo(id));
+    });
+  });
 }
 
 addBtn.onclick = () => { if (todoInput.value.trim()) { addTodo(todoInput.value, todoDate.value || formatDateKey(new Date())); todoInput.value = ''; syncInputClear(); } };
