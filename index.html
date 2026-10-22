@@ -807,10 +807,28 @@ function renderCalendar() {
   });
 }
 
+/* 分组的显示顺序：
+     1) **今天永远置顶**
+     2) 未来日期：**近的在前**（越近到期越靠上）
+     3) 过去日期：近的在前
+   为什么要有这套规则：原来只按日期倒序排，只要存在**未来日期**的分组
+   （比如"下个月交报告"），它们就会排到今天前面 —— 今天和近期的分组反被压到最下面看不见。
+   只把今天置顶还不够：未来分组内部若是"越远越靠前"，近期的任务同样会被远期的挡住。 */
+function sortDateKeysForDisplay(keys, today) {
+  return keys.slice().sort((a, b) => {
+    if (a === today) return -1;
+    if (b === today) return 1;
+    const aFuture = a > today, bFuture = b > today;
+    if (aFuture !== bFuture) return aFuture ? -1 : 1;   // 未来的排在过去的之前
+    if (aFuture) return a.localeCompare(b);             // 未来：近的在前
+    return b.localeCompare(a);                          // 过去：近的在前
+  });
+}
+
 function render() {
   const grouped = getGroupedTodos();
   const today = formatDateKey(new Date());
-  const dateKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  const dateKeys = sortDateKeysForDisplay(Object.keys(grouped), today);
   
   if (dateKeys.length === 0) {
     todoList.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><p>暂无任务</p></div>';
