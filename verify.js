@@ -123,7 +123,7 @@ const FN = ['formatDateKey', 'generateId', 'normalizeTodo', 'sameTodo', 'loadTod
   'labelColor', 'labelExists', 'pruneDanglingLabels', 'addLabelToTodo', 'removeLabelFromTodo',
   'requestDelete', 'cancelDelete', 'doDelete', 'setLabelColor', 'commitLabel', 'showLabelError',
   'toggleLabelFilter', 'clearLabelFilter', 'getGroupedTodos', 'sortDateKeysForDisplay',
-  'toggleTodo', 'editTodo', 'deleteTodo', 'clearCompleted'];
+  'toggleTodo', 'editTodo', 'deleteTodo', 'clearCompleted', 'addTodo'];
 const CONST = ['TODO_FIELDS', 'LABEL_KEY', 'LABEL_UI_KEY', 'LABEL_DEFAULTS', 'LABEL_PALETTE'];
 
 const prelude = `
@@ -232,6 +232,20 @@ const suites = [
     var before = store['todos_v3'];
     todos = []; loadTodos();
     eq('不触发回写', store['todos_v3'], before);
+  ` },
+  { name: '数据层：新增任务', code: `
+    reset();
+    store['todos_v3'] = JSON.stringify([]);
+    todos = []; loadTodos();
+    addTodo('  新任务  ', formatDateKey(new Date()));
+    eq('新增后 1 条', todos.length, 1);
+    eq('文本去空格', todos[0].text, '新任务');
+    eq('默认未完成', todos[0].completed, false);
+    eq('默认无标签', todos[0].labels, []);
+    t('有 id', typeof todos[0].id === 'string' && todos[0].id.length > 0);
+    t('有创建时间', typeof todos[0].createdAt === 'number');
+    eq('已落库', JSON.parse(store['todos_v3']).length, 1);
+    eq('日期按传入值', todos[0].date, formatDateKey(new Date()));
   ` },
   { name: '数据层：完成 / 改名 / 删除 / 清除已完成', code: `
     reset();
