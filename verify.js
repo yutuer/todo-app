@@ -123,7 +123,7 @@ const FN = ['formatDateKey', 'generateId', 'normalizeTodo', 'sameTodo', 'loadTod
   'labelColor', 'labelExists', 'pruneDanglingLabels', 'addLabelToTodo', 'removeLabelFromTodo',
   'requestDelete', 'cancelDelete', 'doDelete', 'setLabelColor', 'commitLabel', 'showLabelError',
   'toggleLabelFilter', 'clearLabelFilter', 'getGroupedTodos', 'sortDateKeysForDisplay',
-  'toggleTodo', 'editTodo', 'deleteTodo', 'clearCompleted', 'addTodo'];
+  'toggleTodo', 'editTodo', 'deleteTodo', 'clearCompleted', 'addTodo', 'attrSel'];
 const CONST = ['TODO_FIELDS', 'LABEL_KEY', 'LABEL_UI_KEY', 'LABEL_DEFAULTS', 'LABEL_PALETTE'];
 
 const prelude = `
@@ -232,6 +232,15 @@ const suites = [
     var before = store['todos_v3'];
     todos = []; loadTodos();
     eq('不触发回写', store['todos_v3'], before);
+  ` },
+  { name: '属性选择器转义：id 里带引号 / 反斜杠也不会拼出非法选择器', code: `
+    reset();
+    var q = String.fromCharCode(34);
+    var bs = String.fromCharCode(92);
+    eq('attrSel 普通值', attrSel('data-id', 'abc'), '[data-id=' + q + 'abc' + q + ']');
+    eq('attrSel 值里带引号', attrSel('data-id', 'a' + q + 'b'), '[data-id=' + q + 'a' + bs + q + 'b' + q + ']');
+    eq('attrSel 值里带反斜杠', attrSel('data-id', 'a' + bs + 'b'), '[data-id=' + q + 'a' + bs + bs + 'b' + q + ']');
+    eq('attrSel 属性名不参与转义', attrSel('data-label-id', 'x'), '[data-label-id=' + q + 'x' + q + ']');
   ` },
   { name: '数据层：新增任务', code: `
     reset();
@@ -490,6 +499,67 @@ suites.forEach(s => {
   }
   rs.forEach(r => check(s.name + ' › ' + r.name, r.pass, r.detail));
 });
+
+/* ------------------------------------------------- 3. 文档对账（README 声明 vs 代码实际） */
+group('3. 文档对账：README 的声明 vs 代码实际');
+
+const README_PATH = path.join(ROOT, 'README.md');
+if (!fs.existsSync(README_PATH)) {
+  check('README.md 存在', false);
+} else {
+  const readme = fs.readFileSync(README_PATH, 'utf8');
+  const cssSrc = fs.existsSync(APP_CSS) ? fs.readFileSync(APP_CSS, 'utf8') : '';
+  const allSrc = indexHtml + '\n' + appSource + '\n' + cssSrc;
+
+  // a) README §8 声明的 localStorage 键位，代码里都要真的用到
+  ['todos_v3', 'todos_collapsed', 'quick_phrases_v1', 'quick_collapsed',
+    'labels_v1', 'label_collapsed', 'label_ui_v1', 'todo_skin'].forEach(k => {
+      check('README §8 声明的键位在代码里存在：' + k, allSrc.includes("'" + k + "'"));
+  });
+
+  // b) README 里反复提到的函数，代码里都要有
+  ['normalizeTodo', 'sameTodo', 'loadTodos', 'saveTodos', 'getGroupedTodos', 'sortDateKeysForDisplay',
+    'loadLabels', 'saveLabels', 'pruneDanglingLabels', 'addLabelToTodo', 'removeLabelFromTodo',
+    'toggleLabelFilter', 'clearLabelFilter', 'renderLabelPanel', 'renderItemLabels',
+    'renderLabelFilterChip', 'doDelete', 'requestDelete', 'cancelDelete', 'isLight',
+    'escapeAttr', 'attrSel', 'bindTodoItemEvents', 'syncLabelRow'].forEach(f => {
+      check('README 提到的函数在代码里存在：' + f, appSource.includes('function ' + f + '('));
+  });
+
+  // c) README §5 锚点表里的锚点必须真的在
+  check('锚点：app.js 的 todoDate.value = selectedDate;', appSource.includes('todoDate.value = selectedDate;'));
+  check('锚点：index.html 的 <div class="filters">', indexHtml.includes('<div class="filters">'));
+  check('锚点：index.html 的 </aside>', indexHtml.includes('</aside>'));
+  check('锚点：index.html 的 id="label-list"', indexHtml.includes('id="label-list"'));
+  check('锚点：app.css 的皮肤块末尾（body[data-skin="ink"]）', cssSrc.includes('body[data-skin="ink"]'));
+
+  // d) 判据表里声明的三个文件的行数 / 体积，必须与实际一致
+  //    —— 改了代码没同步 md，这里就会当场报出来（README §4.9 的"文档与实现要对账"）
+  const enc2 = new TextEncoder();
+  const real = f => {
+    const raw = fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n');
+    const lines = raw.split('\n').length - (raw.endsWith('\n') ? 1 : 0);
+    const kb = Math.round(enc2.encode(raw).length / 1024 * 10) / 10;
+    return { lines: lines, kb: kb };
+  };
+  [['index.html', 'index.html'], ['app.css', 'app.css'], ['app.js', 'app.js']].forEach(pair => {
+    const file = pair[0], label = pair[1];
+    const r = real(file);
+    const m = new RegExp('`' + label.replace('.', '\\.') + '`\\s*\\*\\*(\\d+) 行 / ([\\d.]+)KB\\*\\*').exec(readme);
+    if (!m) {
+      check('README 判据表里能找到 ' + file + ' 的行数/体积声明', false, '没匹配到声明');
+      return;
+    }
+    check('README 里 ' + file + ' 的行数与实际一致', Number(m[1]) === r.lines, '声明 ' + m[1] + ' / 实际 ' + r.lines);
+    check('README 里 ' + file + ' 的体积与实际一致', Number(m[2]) === r.kb, '声明 ' + m[2] + 'KB / 实际 ' + r.kb + 'KB');
+  });
+
+  // e) README 声称"0 处内联 onclick / 0 处引号转义"，代码里也得真的是 0
+  const inlineEvt = (allSrc.match(/onclick=|ondblclick=/g) || []).length;
+  check('代码里确实没有内联 onclick（README 声称 0 处）', inlineEvt === 0, '实际 ' + inlineEvt + ' 处');
+  const esc = (appSource.match(/\\'/g) || []).length;
+  check('代码里确实没有单引号转义（README 声称 0 处）', esc === 0, '实际 ' + esc + ' 处');
+}
 
 /* ------------------------------------------------------------------ 收尾 */
 console.log('\n============================================');

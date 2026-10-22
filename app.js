@@ -50,7 +50,12 @@ function formatFullTime(ts) {
 function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
 /* 属性值专用：escapeHtml 只转义 & < >，引号要另外处理（值写进双引号属性里） */
 function escapeAttr(text) { return escapeHtml(text).replace(/"/g, '&quot;'); }
-
+/* 拼属性选择器用：引号和反斜杠必须转义，否则 id 里带引号就会拼出**非法选择器**，
+   querySelector 直接抛 SyntaxError（编辑按钮 / 双击改名会整条挂掉）。
+   注意不能拿 CSS.escape() 代替 —— 它转义的是「标识符」，放进引号里反而会多出反斜杠。 */
+function attrSel(name, value) {
+  return '[' + name + '="' + String(value).replace(/["\\]/g, '\\$&') + '"]';
+}
 function loadCollapsed() {
   // 存储值损坏时不能让整个脚本挂掉：解析失败一律回落到空集合
   try {
@@ -233,7 +238,7 @@ function toggleCollapse(dateKey) {
   if (collapsedDates.has(dateKey)) collapsedDates.delete(dateKey);
   else collapsedDates.add(dateKey);
   saveCollapsed();
-  const section = document.querySelector('.date-section[data-date="' + dateKey + '"]');
+  const section = document.querySelector('.date-section' + attrSel('data-date', dateKey));
   if (section) section.classList.toggle('collapsed', collapsedDates.has(dateKey));
 }
 
@@ -304,7 +309,7 @@ function getGroupedTodos() {
 }
 
 function startEdit(id, text) {
-  const item = document.querySelector('.todo-item[data-id="' + id + '"]');
+  const item = document.querySelector('.todo-item' + attrSel('data-id', id));
   const content = item.querySelector('.todo-content');
   const textEl = content.querySelector('.todo-text');
   textEl.style.display = 'none';
@@ -928,7 +933,7 @@ function restoreLabelEditor() {
 /* 实时改名/改色后，就地更新面板那一行的文字与色块。
    注意不能调 renderLabelPanel()——那会把编辑器整个重建掉，正在输入的焦点就没了。 */
 function syncLabelRow(id) {
-  const row = labelList.querySelector('.label-row[data-label-id="' + id + '"]');
+  const row = labelList.querySelector('.label-row' + attrSel('data-label-id', id));
   if (!row) return;
   const d = labelDef(id);
   if (!d) return;
